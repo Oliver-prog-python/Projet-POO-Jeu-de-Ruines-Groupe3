@@ -68,37 +68,80 @@ def draw_unit_with_selection(unit, screen, cell_size, is_selected):
 def draw_ui(screen, selected_unit, last_action_message):
     pygame.draw.rect(screen, (50, 50, 50), (GRID_WIDTH, 0, UI_WIDTH, HEIGHT))
     
-    font = pygame.font.Font(None, 36)
+    # Fontes pour le texte
+    font_small = pygame.font.Font(None, 24)
+    font_medium = pygame.font.Font(None, 28)
+    font_large = pygame.font.Font(None, 36)
+    font_title = pygame.font.Font(None, 40)
     
-    title = font.render("Commandes", True, (255, 255, 255))
-    screen.blit(title, (GRID_WIDTH + 20, 20))
+    y_offset = 20  # Position de départ verticale pour les commandes
+    
+    #Section 1 : Touche de commandes :
+    title_commands = font_title.render("Touches de commandes :", True, (255, 255, 255))
+    screen.blit(title_commands, (GRID_WIDTH + 20, y_offset))
+    y_offset += 50
     
     controls = [
+        #Touches pour le deplacement et choix de l'unité :
         "Flèches : Déplacer l'unité",
         "TAB : Changer d'unité",
+        
+        # Touches pour les compétences Explorateur :
+            
         "E : Révéler une zone (Explorateur)",
+        "Q : Détection de pièges (Explorateur)",
+        "R : Coup rapide (Explorateur)",
+        
+        # Touches pour les compétences Archeologue :
+            
         "D : Décrypter un indice (Archéologue)",
-        "P : Poser un piège (Chasseur)"
+        "A : Analyse de l'environnement (Archéologue)",
+        "T : Attaque ciblée (Archéologue)",
+        
+        #Touches pour les compétences Chasseur :
+            
+        "P : Poser un piège (Chasseur)",
+        "Y : Tir à distance (Chasseur)",
+        "B : Brouillard de guerre (Chasseur)"
     ]
-    for i, text in enumerate(controls):
-        line = font.render(text, True, (200, 200, 200))
-        screen.blit(line, (GRID_WIDTH + 20, 60 + i * 40))
+    for command in controls:
+        line = font_small.render(command, True, (200, 200, 200))
+        screen.blit(line, (GRID_WIDTH + 20, y_offset))
+        y_offset += 25  # Espacement entre les commandes
+
+    # Pour separer la section control et la section informations (Mieux visuellement)
+    y_offset += 20
+    pygame.draw.line(screen, (255, 255, 255), (GRID_WIDTH + 10, y_offset), (WIDTH - 10, y_offset), 2)
+    y_offset += 20
     
+    #Section 2 : Infos sur l'unité :
+    title_unit_info = font_title.render("Informations sur l'unité :", True, (255, 255, 255))
+    screen.blit(title_unit_info, (GRID_WIDTH + 20, y_offset))
+    y_offset += 50 
     # Informations sur l'unité sélectionnée
     unit_info = [
-        "=============================",
         f"Unité : {selected_unit.name}",
         f"PV : {selected_unit.health}",
         f"Défense : {selected_unit.defense}",
         f"Position : ({selected_unit.x}, {selected_unit.y})"
     ]
-    for i, text in enumerate(unit_info):
-        line = font.render(text, True, (200, 200, 0))
-        screen.blit(line, (GRID_WIDTH + 20, 260 + i * 40)) 
+    for info in unit_info:
+        line = font_medium.render(info, True, (255, 255, 0))
+        screen.blit(line, (GRID_WIDTH + 20, y_offset))
+        y_offset += 35  # Espacement entre les infos
+
+    # Pour separer la section Informations et Action realiser par une unité
+    y_offset += 20
+    pygame.draw.line(screen, (255, 255, 255), (GRID_WIDTH + 10, y_offset), (WIDTH - 10, y_offset), 2)
+    y_offset += 20
     
-    # Afficher le message de la dernière action
-    action_message = font.render(f"Action : {last_action_message}", True, (255, 255, 255))
-    screen.blit(action_message, (GRID_WIDTH + 20, 500))
+    # Section 3 :  Action fait par l'unité :
+    title_action = font_title.render("Dernière action :", True, (255, 255, 255))
+    screen.blit(title_action, (GRID_WIDTH + 20, y_offset))
+    y_offset += 50  # Espacement après le titre
+    # Section 3 : Dernière action
+    action_message = font_large.render(f"Action : {last_action_message}", True, (255, 255, 255))
+    screen.blit(action_message, (GRID_WIDTH + 20, y_offset))
 
 # Boucle principale
 def main():
@@ -151,24 +194,62 @@ def main():
                 elif event.key == pygame.K_RIGHT and units[selected_unit_index].x < 9:
                     units[selected_unit_index].x += 1
                 
-                # Activer les compétences
-                elif event.key == pygame.K_e:  # Compétence 1 : Révéler une zone (Explorateur)
-                      
+                # Activer les compétences:
+                
+                #====================
+                #Pour l'explorateur :
+                #====================
+                    
+                elif event.key == pygame.K_e:  # Compétence 1 : Révéler une zone (Explorateur):
                     if isinstance(units[selected_unit_index], Explorateur):
                         revealed = units[selected_unit_index].revele_zone(grid)
                         last_action_message = f"Zone révélée par {units[selected_unit_index].name}"
+               
+                elif event.key == pygame.K_q:  #Compétence 2 : Détection de pièges (Explorateur):
+                    if isinstance(units[selected_unit_index], Explorateur):
+                        last_action_message = units[selected_unit_index].detecte_piege(grid)
 
-                elif event.key == pygame.K_d:  # Compétence 2 : Décrypter un indice (Archéologue)
-                    
+                elif event.key == pygame.K_r: #Compétence 3: Coup rapide dégats (Explorateur):
+                    if isinstance(units[selected_unit_index], Explorateur):
+                        cible = ...  
+                        last_action_message = units[selected_unit_index].coup_rapide(cible)
+                
+                #======================
+                # Pour l'Archeologue :
+                #======================
+                
+                elif event.key == pygame.K_d:  # Compétence 1 : Décrypter un indice (Archéologue):
                     if isinstance(units[selected_unit_index], Archeologue):
                         case = grid[units[selected_unit_index].x][units[selected_unit_index].y]
                         last_action_message = units[selected_unit_index].decrypter_indice(case)
+               
+                elif event.key == pygame.K_a:  #Compétence 2 : Analyse de l'environnement (Archéologue):
+                    if isinstance(units[selected_unit_index], Archeologue):
+                        last_action_message = units[selected_unit_index].analyse_environnement(grid)
 
-                elif event.key == pygame.K_p:  # Compétence 3 : Poser un piège (Chasseur)
-                    
+                elif event.key == pygame.K_t: #Compétence 3 : Attaque ciblé (Archeologue):
+                    if isinstance(units[selected_unit_index], Archeologue):
+                        cible = ...  
+                        last_action_message = units[selected_unit_index].attaque_ciblee(cible)
+                
+                #===================
+                #Pour le chasseur :
+                #====================
+                
+                elif event.key == pygame.K_p:  # Compétence 1 : Poser un piège (Chasseur):
                     if isinstance(units[selected_unit_index], Chasseur):
                         x, y = units[selected_unit_index].x, units[selected_unit_index].y
                         last_action_message = units[selected_unit_index].poser_piege(grid, x, y)
+                
+                elif event.key == pygame.K_b: # Compétence 2 : Brouillard de guerre (Chasseur):
+                    if isinstance(units[selected_unit_index], Chasseur):
+                        enemy_units = [unit for unit in units if unit != units[selected_unit_index]]  # Liste des unités ennemies
+                        last_action_message = units[selected_unit_index].brouillard_de_guerre(enemy_units, grid)
+
+                elif event.key == pygame.K_y: #Compétence 3 : Tire à distance (Chasseur):
+                    if isinstance(units[selected_unit_index], Chasseur):
+                        cible = ...  
+                        last_action_message = units[selected_unit_index].tir_distance(cible)
                         
         pygame.display.flip()
         clock.tick(60)
