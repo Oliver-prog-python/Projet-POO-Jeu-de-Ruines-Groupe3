@@ -131,34 +131,84 @@ class Game:
 
     def draw_ui(self):
         pygame.draw.rect(self.screen, (50, 50, 50), (GRID_WIDTH, 0, UI_WIDTH, HEIGHT))
-        font = pygame.font.Font(None, 36)
 
-        # Afficher les commandes
-        commands = [
-            "Flèches : Déplacer",
-            "TAB : Changer unité",
-            "E : Révéler zone (Explorateur)",
-            "D : Décrypter indice (Archéologue)",
-            "P : Poser piège (Chasseur)"
-        ]
-        for i, cmd in enumerate(commands):
-            line = font.render(cmd, True, (255, 255, 255))
-            self.screen.blit(line, (GRID_WIDTH + 20, 20 + i * 30))
+         # Fontes pour le texte
+        font_small = pygame.font.Font(None, 24)
+        font_medium = pygame.font.Font(None, 28)
+        font_large = pygame.font.Font(None, 36)
+        font_title = pygame.font.Font(None, 40)
+         
+        y_offset = 20  # Position de départ verticale pour les commandes
+    
+        #Section 1 : Touche de commandes :
+        title_commands = font_title.render("Touches de commandes :", True, (255, 255, 255))
+        self.screen.blit(title_commands, (GRID_WIDTH + 20, y_offset))
+        y_offset += 50
+    
+        controls = [
+            #Touches pour le deplacement et choix de l'unité :
+            "Flèches : Déplacer l'unité",
+            "TAB : Changer d'unité",
+        
+            # Touches pour les compétences Explorateur :
+            
+            "E : Révéler une zone (Explorateur)",
+            "Q : Détection de pièges (Explorateur)",
+            "R : Coup rapide (Explorateur)",
+        
+            # Touches pour les compétences Archeologue :
+            
+            "D : Décrypter un indice (Archéologue)",
+            "A : Analyse de l'environnement (Archéologue)",
+            "T : Attaque ciblée (Archéologue)",
+        
+            #Touches pour les compétences Chasseur :
+            
+            "P : Poser un piège (Chasseur)",
+            "Y : Tir à distance (Chasseur)",
+            "B : Brouillard de guerre (Chasseur)"
+            ]
+        for command in controls:
+            line = font_small.render(command, True, (200, 200, 200))
+            self.screen.blit(line, (GRID_WIDTH + 20, y_offset))
+            y_offset += 25  # Espacement entre les commandes
 
-        # Afficher le message d'action
-        action_message = font.render(f"Action : {self.last_action_message}", True, (255, 255, 0))
-        self.screen.blit(action_message, (GRID_WIDTH + 20, 200))
-
-        # Afficher les infos de l'unité sélectionnée
+        # Pour separer la section control et la section informations (Mieux visuellement)
+        y_offset += 20
+        pygame.draw.line(self.screen, (255, 255, 255), (GRID_WIDTH + 10, y_offset), (WIDTH - 10, y_offset), 2)
+        y_offset += 20
+    
+        #Section 2 : Infos sur l'unité :
+        title_unit_info = font_title.render("Informations sur l'unité :", True, (255, 255, 255))
+        self.screen.blit(title_unit_info, (GRID_WIDTH + 20, y_offset))
+        y_offset += 50 
+        
+        # Informations sur l'unité sélectionnée
         selected_unit = self.player_units[self.selected_unit_index]
         unit_info = [
             f"Unité : {selected_unit.name}",
             f"PV : {selected_unit.health}",
+            f"Défense : {selected_unit.defense}",
             f"Position : ({selected_unit.x}, {selected_unit.y})"
-        ]
-        for i, info in enumerate(unit_info):
-            line = font.render(info, True, (200, 200, 200))
-            self.screen.blit(line, (GRID_WIDTH + 20, 300 + i * 30))
+            ]
+        for info in unit_info:
+            line = font_medium.render(info, True, (255, 255, 0))
+            self.screen.blit(line, (GRID_WIDTH + 20, y_offset))
+            y_offset += 35  # Espacement entre les infos
+
+        # Pour separer la section Informations et Action realiser par une unité
+        y_offset += 20
+        pygame.draw.line(self.screen, (255, 255, 255), (GRID_WIDTH + 10, y_offset), (WIDTH - 10, y_offset), 2)
+        y_offset += 20
+    
+        # Section 3 :  Action fait par l'unité :
+        title_action = font_title.render("Dernière action :", True, (255, 255, 255))
+        self.screen.blit(title_action, (GRID_WIDTH + 20, y_offset))
+        
+        y_offset += 50  # Espacement après le titre
+        # Section 3 : Dernière action
+        action_message = font_medium.render(f"Action : {self.last_action_message}", True, (255, 255, 255))
+        self.screen.blit(action_message, (GRID_WIDTH + 20, y_offset))
 
     def flip_display(self):
         self.screen.fill((0, 0, 0))
