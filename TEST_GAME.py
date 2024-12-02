@@ -3,8 +3,8 @@ import random
 from TEST_Jeu_Units import Explorateur, Archeologue, Chasseur
 
 # Dimensions de la grille
-CELL_SIZE = 60
-GRID_SIZE = 10
+CELL_SIZE = 1300
+GRID_SIZE = 800
 WIDTH = CELL_SIZE * GRID_SIZE
 HEIGHT = CELL_SIZE * GRID_SIZE
 
