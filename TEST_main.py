@@ -2,8 +2,8 @@ import pygame
 from game import Game
 
 # Configuration
-CELL_SIZE = 60
-GRID_SIZE = 10
+CELL_SIZE = 1300
+GRID_SIZE = 800
 WIDTH = GRID_SIZE * CELL_SIZE
 HEIGHT = GRID_SIZE * CELL_SIZE
 FPS = 30
