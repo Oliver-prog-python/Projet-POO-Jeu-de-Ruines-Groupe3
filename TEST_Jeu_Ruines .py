@@ -6,7 +6,7 @@ Created on Fri Nov 29 17:14:34 2024
 @author: olivermaamary
 """
 import pygame
-from Main_Jeu_Units import Explorateur, Archeologue, Chasseur
+from Test_Jeu_Units import Explorateur, Archeologue, Chasseur
 
 # Initialiser pygame et la grille
 pygame.init()
