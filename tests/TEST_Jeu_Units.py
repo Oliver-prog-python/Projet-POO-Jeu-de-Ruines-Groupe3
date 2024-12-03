@@ -47,7 +47,7 @@ class Unit:
     
 class Explorateur(Unit):
     def __init__(self, x, y,team):
-        super().__init__(x, y, "aventurier.png", team, "Explorateur")
+        super().__init__(x, y, "images/aventurier.png", team, "Explorateur")
         self.speed = 5
     
     #compétence 1 :
@@ -86,7 +86,7 @@ class Explorateur(Unit):
 
 class Archeologue(Unit):
     def __init__(self, x, y,team):
-        super().__init__(x, y, "archeologue.png",team, "Archéologue")
+        super().__init__(x, y, "images/archeologue.png",team, "Archéologue")
         self.speed = 2
 
     #Compétence 1 : Decrypter l'indice :
@@ -121,7 +121,7 @@ class Archeologue(Unit):
 
 class Chasseur(Unit):
     def __init__(self, x, y,team):
-        super().__init__(x, y, "chasseur.png", team,"Chasseur")
+        super().__init__(x, y, "images/chasseur.png", team,"Chasseur")
         self.speed = 3
     
     #Compétence 1 : Pose de piège :
