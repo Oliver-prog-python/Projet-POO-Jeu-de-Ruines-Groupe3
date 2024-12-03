@@ -14,26 +14,53 @@ class Case:
         self.type = type_case
         self.hidden = False  # Les cases commencent révélées
 
-    def trigger_effect(self, unit):
+    def trigger_effect(self, unit, is_human=True):
+        if self.type == "trésor":
+            return f"{unit.name} a trouvé le trésor ! Victoire !"
         if self.type == "piège":
             if isinstance(unit, Chasseur):
                 return f"{unit.name} détecte et désamorce un piège."
-            else:
+            else: # cas où ce n'est pas un chasseur
                 unit.health -= 20
                 return f"{unit.name} marche sur un piège et perd 20 PV."
+
         elif self.type == "ressource":
             unit.health += 10
             return f"{unit.name} récupère une ressource et gagne 10 PV."
+
         elif self.type == "indice":
-            if isinstance(unit, Archeologue):
-                self.type = "normale"
-                return f"{unit.name} déchiffre un indice pour avancer."
-            return f"{unit.name} ne peut pas déchiffrer cet indice."
+            if isinstance(unit,Archeologue):
+                if is_human:
+                    # Défi pour le joueur humain controlant un archéologue
+                    x, y = random.randint(1, 10), random.randint(1, 10)
+                    correct_answer = x + y
+                    print(f"Défi : Quel est le résultat de {x} + {y} ?")
+                    try:
+                        player_answer = int(input("Votre réponse : "))
+                        if player_answer == correct_answer:
+                            self.type = "normale"
+                            return f"{unit.name} a résolu l'indice avec succès."
+                        else:
+                            unit.health -= 10
+                            return f"{unit.name} a échoué à résoudre l'indice et perd 10 PV."
+                    except ValueError:
+                        unit.health -= 10
+                        return f"{unit.name} n'a pas répondu correctement et perd 10 PV."
+                else:
+                # L'IA contrôlant un archéologue échoue automatiquement
+                    unit.health-=10
+                    return f"{unit.name} (IA) n'a pas déchiffré l'indice avec succès."
+            else:
+            # Unité non archéologue : perd toujours 10 PV
+                unit.health -= 10
+                return f"{unit.name} ne peut pas déchiffrer l'indice et perd 10 PV."
         elif self.type == "ruines":
-            return f"{unit.name} explore les ruines."
+            if isinstance(unit, Explorateur):
+                return f"{unit.name} explore efficacement les ruines."
+        else:
+            return f"{unit.name} explore les ruines sans compétences particulières."
         return f"{unit.name} avance sur une case normale."
-
-
+      
 class Game:
     def __init__(self, screen):
         self.screen = screen
@@ -41,6 +68,23 @@ class Game:
         self.cell_size = GRID_WIDTH // self.grid_size
         self.grid = self.initialize_grid()
 
+    # Charger les images des cases
+        self.tile_images = {
+            "normale": pygame.image.load("images/case_ruine2.png"),
+            "piège": pygame.image.load("images/case_piege2.png"),
+            "ressource": pygame.image.load("images/case_ressource2.png"),
+            "indice": pygame.image.load("images/case_indice2.png"),
+        }
+        for key in self.tile_images:
+            self.tile_images[key] = pygame.transform.scale(self.tile_images[key], (self.cell_size, self.cell_size))
+
+        # Ajouter l'image du trésor
+        self.tile_images["trésor"] = pygame.image.load("images/case_tresor2.png")
+        self.tile_images["trésor"] = pygame.transform.scale(self.tile_images["trésor"], (self.cell_size, self.cell_size))
+        
+        # Placer le trésor
+        self.place_tresor()
+        
         # Initialiser les équipes
         self.player_units = self.create_random_team("player")
         self.enemy_units = self.create_random_team("enemy")
@@ -49,13 +93,38 @@ class Game:
         self.last_action_message = "Aucune action effectuée."
 
     def initialize_grid(self):
-        grid = [[Case() for _ in range(self.grid_size)] for _ in range(self.grid_size)]
-        grid[2][2].type = "piège"
-        grid[5][5].type = "indice"
-        grid[7][7].type = "ressource"
-        grid[1][8 % self.grid_size].type = "ruines"
-        return grid
+         # Définir les proportions
+        nombre_pieges = int(self.grid_size * self.grid_size * 0.2)  # 20% de pièges
+        nombre_ressources = int(self.grid_size * self.grid_size * 0.2)  # 10% de ressources
+        nombre_indices= int(self.grid_size * self.grid_size * 0.1)  # 10% d'indices
 
+    # Placer des pièges
+        for _ in range(nombre_pieges):
+            x, y = random.randint(0, self.grid_size - 1), random.randint(0, self.grid_size - 1)
+            grid[y][x].type = "piège"
+
+    # Placer des ressources
+        for _ in range(nombre_ressources):
+            x, y = random.randint(0, self.grid_size - 1), random.randint(0, self.grid_size - 1)
+            grid[y][x].type = "ressource"
+
+    # Placer des indices
+        for _ in range(nombre_indices):
+            x, y = random.randint(0, self.grid_size - 1), random.randint(0, self.grid_size - 1)
+            grid[y][x].type = "indice"
+
+        return grid
+    
+    def place_tresor(self):
+        """Place un trésor sur une case aléatoire de la grille."""
+        while True:
+            x, y = random.randint(0, self.grid_size - 1), random.randint(0, self.grid_size - 1)
+            if self.grid[y][x].type == "normale":  # Assurez-vous que la case est normale
+                self.grid[y][x].type = "trésor"
+                print(f"Le trésor a été placé sur la case ({x}, {y})")
+                break
+    
+       
     def create_random_team(self, team):
         unit_classes = [Explorateur, Archeologue, Chasseur]
         return [
@@ -70,6 +139,10 @@ class Game:
     def handle_player_turn(self):
         selected_unit = self.player_units[self.selected_unit_index]
         has_acted = False
+         
+        # Initialiser dx et dy pour éviter des erreurs
+        dx, dy = 0, 0  # Par défaut, aucune direction
+        
         while not has_acted:
             self.flip_display()
             for event in pygame.event.get():
@@ -92,38 +165,51 @@ class Game:
                         self.last_action_message = f"{selected_unit.name} est sélectionné."
                         break
                     if dx != 0 or dy != 0:
-                        selected_unit.x = max(0, min(self.grid_size - 1, selected_unit.x + dx))
-                        selected_unit.y = max(0, min(self.grid_size - 1, selected_unit.y + dy))
-                        case = self.grid[selected_unit.y][selected_unit.x]
-                        self.last_action_message = case.trigger_effect(selected_unit)
-                        print(self.last_action_message)
-                        has_acted = True
+                        # Mise à jour de la position
+                    selected_unit.x = max(0, min(self.grid_size - 1, selected_unit.x + dx))
+                    selected_unit.y = max(0, min(self.grid_size - 1, selected_unit.y + dy))
+                    
+                    # Appliquer l'effet de la case
+                    case = self.grid[selected_unit.y][selected_unit.x]
+                    self.last_action_message = case.trigger_effect(selected_unit, is_human=True)
+                    print(self.last_action_message)
+                    has_acted = True
+
+                        
 
     def handle_enemy_turn(self):
         for enemy in self.enemy_units:
             target = random.choice(self.player_units)
             dx = 1 if enemy.x < target.x else -1 if enemy.x > target.x else 0
             dy = 1 if enemy.y < target.y else -1 if enemy.y > target.y else 0
+            
+            #Mise à jour de la position
             enemy.x = max(0, min(self.grid_size - 1, enemy.x + dx))
             enemy.y = max(0, min(self.grid_size - 1, enemy.y + dy))
+            
+            # appliquer l'effet de la case
             case = self.grid[enemy.y][enemy.x]
             self.last_action_message = case.trigger_effect(enemy)
+            print(self.last_action_message)
 
     def draw_grid(self):
         for y, row in enumerate(self.grid):
             for x, case in enumerate(row):
-                color = (200, 200, 200) if not case.hidden else (50, 50, 50)
-                pygame.draw.rect(
-                    self.screen,
-                    color,
-                    (x * self.cell_size, y * self.cell_size, self.cell_size, self.cell_size)
-                )
+                # Utiliser l'image correspondant au type de la case
+                image = self.tile_images.get(case.type, self.tile_images["normale"])
+                self.screen.blit(image, (x * self.cell_size, y * self.cell_size))
+
+                # Dessiner les bordures des cases
                 pygame.draw.rect(
                     self.screen,
                     (0, 0, 0),
                     (x * self.cell_size, y * self.cell_size, self.cell_size, self.cell_size),
-                    1
+                    1,
                 )
+
+
+                
+                
 
     def draw_units(self):
         for unit in self.player_units + self.enemy_units:
