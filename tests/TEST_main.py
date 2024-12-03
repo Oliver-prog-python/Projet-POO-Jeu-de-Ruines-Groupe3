@@ -14,6 +14,9 @@ def main():
     pygame.display.set_caption("Jeu des Ruines")
     clock = pygame.time.Clock()
 
+    # Bloquer les événements souris
+    pygame.event.set_blocked([pygame.MOUSEMOTION, pygame.MOUSEBUTTONDOWN, pygame.MOUSEBUTTONUP])
+
     # Initialisation du jeu
     game = Game(screen)
     running = True
