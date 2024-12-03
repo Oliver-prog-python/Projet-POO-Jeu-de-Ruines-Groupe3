@@ -10,8 +10,6 @@ import pygame
 # Paramétres / constantes :
 #================================================
 BLACK = (0, 0, 0)
-RED = (255, 0, 0)
-BLUE = (0, 0, 255)
 
 #================================================
 # Définition de la classe pour les personnages :
@@ -19,10 +17,11 @@ BLUE = (0, 0, 255)
 
 class Unit:
     """Classe de base pour toutes les unités."""
-    def __init__(self, x, y, color, team,name):
+    def __init__(self, x, y, image_path, team,name):
         self.x = x
         self.y = y
-        self.color = color
+        self.image = pygame.image.load(image_path)  # Charger l'image
+        self.image = pygame.transform.scale(self.image, (85, 85))  
         self.name = name
         self.health = 100
         self.defense = 10
@@ -48,7 +47,7 @@ class Unit:
     
 class Explorateur(Unit):
     def __init__(self, x, y,team):
-        super().__init__(x, y, BLUE, team, "Explorateur")
+        super().__init__(x, y, "aventurier.png", team, "Explorateur")
         self.speed = 5
     
     #compétence 1 :
@@ -87,7 +86,7 @@ class Explorateur(Unit):
 
 class Archeologue(Unit):
     def __init__(self, x, y,team):
-        super().__init__(x, y, (255, 0, 0),team, "Archéologue")
+        super().__init__(x, y, "archeologue.png",team, "Archéologue")
         self.speed = 2
 
     #Compétence 1 : Decrypter l'indice :
@@ -122,7 +121,7 @@ class Archeologue(Unit):
 
 class Chasseur(Unit):
     def __init__(self, x, y,team):
-        super().__init__(x, y, (0, 255, 0), team,"Chasseur")
+        super().__init__(x, y, "chasseur.png", team,"Chasseur")
         self.speed = 3
     
     #Compétence 1 : Pose de piège :
