@@ -13,7 +13,7 @@ class Case:
     def __init__(self, type_case="normale"):
         self.type = type_case
         self.hidden = False  # Les cases commencent révélées
-
+    
     def trigger_effect(self, unit, is_human=True):
         if self.type == "trésor":
             return f"{unit.name} a trouvé le trésor ! Victoire !"
@@ -68,13 +68,15 @@ class Game:
         self.cell_size = GRID_WIDTH // self.grid_size
         self.grid = self.initialize_grid()
 
-    # Charger les images des cases
+         # Charger les images des cases
         self.tile_images = {
             "normale": pygame.image.load("images/case_ruine2.png"),
             "piège": pygame.image.load("images/case_piege2.png"),
             "ressource": pygame.image.load("images/case_ressource2.png"),
             "indice": pygame.image.load("images/case_indice2.png"),
         }
+         
+
         for key in self.tile_images:
             self.tile_images[key] = pygame.transform.scale(self.tile_images[key], (self.cell_size, self.cell_size))
 
@@ -84,7 +86,7 @@ class Game:
         
         # Placer le trésor
         self.place_tresor()
-        
+
         # Initialiser les équipes
         self.player_units = self.create_random_team("player")
         self.enemy_units = self.create_random_team("enemy")
@@ -93,7 +95,12 @@ class Game:
         self.last_action_message = "Aucune action effectuée."
 
     def initialize_grid(self):
-         # Définir les proportions
+        """
+        Crée une grille avec des cases de différents types en fonction de proportions prédéfinies.
+        """
+        grid = [[Case() for _ in range(self.grid_size)] for _ in range(self.grid_size)]
+    
+    # Définir les proportions
         nombre_pieges = int(self.grid_size * self.grid_size * 0.2)  # 20% de pièges
         nombre_ressources = int(self.grid_size * self.grid_size * 0.2)  # 10% de ressources
         nombre_indices= int(self.grid_size * self.grid_size * 0.1)  # 10% d'indices
@@ -124,7 +131,6 @@ class Game:
                 print(f"Le trésor a été placé sur la case ({x}, {y})")
                 break
     
-       
     def create_random_team(self, team):
         unit_classes = [Explorateur, Archeologue, Chasseur]
         return [
@@ -139,10 +145,9 @@ class Game:
     def handle_player_turn(self):
         selected_unit = self.player_units[self.selected_unit_index]
         has_acted = False
-         
+
         # Initialiser dx et dy pour éviter des erreurs
         dx, dy = 0, 0  # Par défaut, aucune direction
-        
         while not has_acted:
             self.flip_display()
             for event in pygame.event.get():
@@ -151,21 +156,22 @@ class Game:
                     exit()
                 if event.type == pygame.KEYDOWN:
                     dx, dy = 0, 0
-                    if event.key == pygame.K_LEFT:
-                        dx = -1
-                    elif event.key == pygame.K_RIGHT:
-                        dx = 1
-                    elif event.key == pygame.K_UP:
-                        dy = -1
-                    elif event.key == pygame.K_DOWN:
-                        dy = 1
-                    elif event.key == pygame.K_TAB:
-                        self.selected_unit_index = (self.selected_unit_index + 1) % len(self.player_units)
-                        selected_unit = self.player_units[self.selected_unit_index]
-                        self.last_action_message = f"{selected_unit.name} est sélectionné."
-                        break
-                    if dx != 0 or dy != 0:
-                        # Mise à jour de la position
+                if event.key == pygame.K_LEFT:
+                    dx = -1
+                elif event.key == pygame.K_RIGHT:
+                    dx = 1
+                elif event.key == pygame.K_UP:
+                    dy = -1
+                elif event.key == pygame.K_DOWN:
+                    dy = 1
+                elif event.key == pygame.K_TAB:
+                    # Passer à l'unité suivante
+                    self.selected_unit_index = (self.selected_unit_index + 1) % len(self.player_units)
+                    selected_unit = self.player_units[self.selected_unit_index]
+                    self.last_action_message = f"{selected_unit.name} est sélectionné."
+                    break
+                if dx != 0 or dy != 0:
+                    # Mise à jour de la position
                     selected_unit.x = max(0, min(self.grid_size - 1, selected_unit.x + dx))
                     selected_unit.y = max(0, min(self.grid_size - 1, selected_unit.y + dy))
                     
@@ -175,24 +181,27 @@ class Game:
                     print(self.last_action_message)
                     has_acted = True
 
-                        
 
     def handle_enemy_turn(self):
         for enemy in self.enemy_units:
             target = random.choice(self.player_units)
             dx = 1 if enemy.x < target.x else -1 if enemy.x > target.x else 0
             dy = 1 if enemy.y < target.y else -1 if enemy.y > target.y else 0
-            
-            #Mise à jour de la position
-            enemy.x = max(0, min(self.grid_size - 1, enemy.x + dx))
-            enemy.y = max(0, min(self.grid_size - 1, enemy.y + dy))
-            
-            # appliquer l'effet de la case
-            case = self.grid[enemy.y][enemy.x]
-            self.last_action_message = case.trigger_effect(enemy)
-            print(self.last_action_message)
 
+        # Mise à jour de la position
+        enemy.x = max(0, min(self.grid_size - 1, enemy.x + dx))
+        enemy.y = max(0, min(self.grid_size - 1, enemy.y + dy))
+
+        # Appliquer l'effet de la case
+        case = self.grid[enemy.y][enemy.x]
+        self.last_action_message = case.trigger_effect(enemy, is_human=False)
+        print(self.last_action_message)
+
+    
     def draw_grid(self):
+        """
+        Dessine la grille avec toutes les cases affichées en fonction de leur type.
+        """
         for y, row in enumerate(self.grid):
             for x, case in enumerate(row):
                 # Utiliser l'image correspondant au type de la case
@@ -207,94 +216,49 @@ class Game:
                     1,
                 )
 
-
-                
-                
-
     def draw_units(self):
         for unit in self.player_units + self.enemy_units:
             unit.draw(self.screen, self.cell_size)
 
+    
     def draw_ui(self):
+    # Dessiner la zone UI
         pygame.draw.rect(self.screen, (50, 50, 50), (GRID_WIDTH, 0, UI_WIDTH, HEIGHT))
 
-         # Fontes pour le texte
-        font_small = pygame.font.Font(None, 24)
-        font_medium = pygame.font.Font(None, 28)
-        font_large = pygame.font.Font(None, 36)
-        font_title = pygame.font.Font(None, 40)
-         
-        y_offset = 20  # Position de départ verticale pour les commandes
-    
-        #Section 1 : Touche de commandes :
-        title_commands = font_title.render("Touches de commandes :", True, (255, 255, 255))
-        self.screen.blit(title_commands, (GRID_WIDTH + 20, y_offset))
-        y_offset += 50
-    
-        controls = [
-            #Touches pour le deplacement et choix de l'unité :
+    # Initialiser une police d'écriture
+        font = pygame.font.Font(None, 36)
+
+    # Afficher les commandes
+        commands = [
+            "Commandes :",
             "Flèches : Déplacer l'unité",
             "TAB : Changer d'unité",
-        
-            # Touches pour les compétences Explorateur :
-            
             "E : Révéler une zone (Explorateur)",
-            "Q : Détection de pièges (Explorateur)",
-            "R : Coup rapide (Explorateur)",
-        
-            # Touches pour les compétences Archeologue :
-            
             "D : Décrypter un indice (Archéologue)",
-            "A : Analyse de l'environnement (Archéologue)",
-            "T : Attaque ciblée (Archéologue)",
-        
-            #Touches pour les compétences Chasseur :
-            
-            "P : Poser un piège (Chasseur)",
-            "Y : Tir à distance (Chasseur)",
-            "B : Brouillard de guerre (Chasseur)"
-            ]
-        for command in controls:
-            line = font_small.render(command, True, (200, 200, 200))
-            self.screen.blit(line, (GRID_WIDTH + 20, y_offset))
-            y_offset += 25  # Espacement entre les commandes
+            "P : Poser un piège (Chasseur)"
+    ]
+        for i, cmd in enumerate(commands):
+            line = font.render(cmd, True, (255, 255, 255))
+            self.screen.blit(line, (GRID_WIDTH + 20, 20 + i * 30))
 
-        # Pour separer la section control et la section informations (Mieux visuellement)
-        y_offset += 20
-        pygame.draw.line(self.screen, (255, 255, 255), (GRID_WIDTH + 10, y_offset), (WIDTH - 10, y_offset), 2)
-        y_offset += 20
-    
-        #Section 2 : Infos sur l'unité :
-        title_unit_info = font_title.render("Informations sur l'unité :", True, (255, 255, 255))
-        self.screen.blit(title_unit_info, (GRID_WIDTH + 20, y_offset))
-        y_offset += 50 
-        
-        # Informations sur l'unité sélectionnée
+    # Afficher l'action du joueur
+        player_action = font.render(f"Action Joueur : {self.last_action_message}", True, (0, 255, 0))
+        self.screen.blit(player_action, (GRID_WIDTH + 20, 200))
+
+    # Afficher l'action de l'IA (en rouge)
+        ia_action = font.render(f"Action IA : {self.last_action_message}", True, (255, 0, 0))
+        self.screen.blit(ia_action, (GRID_WIDTH + 20, 240))
+
+    # Informations sur l'unité sélectionnée
         selected_unit = self.player_units[self.selected_unit_index]
         unit_info = [
             f"Unité : {selected_unit.name}",
             f"PV : {selected_unit.health}",
-            f"Défense : {selected_unit.defense}",
             f"Position : ({selected_unit.x}, {selected_unit.y})"
-            ]
-        for info in unit_info:
-            line = font_medium.render(info, True, (255, 255, 0))
-            self.screen.blit(line, (GRID_WIDTH + 20, y_offset))
-            y_offset += 35  # Espacement entre les infos
-
-        # Pour separer la section Informations et Action realiser par une unité
-        y_offset += 20
-        pygame.draw.line(self.screen, (255, 255, 255), (GRID_WIDTH + 10, y_offset), (WIDTH - 10, y_offset), 2)
-        y_offset += 20
-    
-        # Section 3 :  Action fait par l'unité :
-        title_action = font_title.render("Dernière action :", True, (255, 255, 255))
-        self.screen.blit(title_action, (GRID_WIDTH + 20, y_offset))
-        
-        y_offset += 50  # Espacement après le titre
-        # Section 3 : Dernière action
-        action_message = font_medium.render(f"Action : {self.last_action_message}", True, (255, 255, 255))
-        self.screen.blit(action_message, (GRID_WIDTH + 20, y_offset))
+    ]
+        for i, info in enumerate(unit_info):
+            line = font.render(info, True, (200, 200, 200))
+            self.screen.blit(line, (GRID_WIDTH + 20, 300 + i * 30))
 
     def flip_display(self):
         self.screen.fill((0, 0, 0))
@@ -302,3 +266,20 @@ class Game:
         self.draw_units()
         self.draw_ui()
         pygame.display.flip()
+
+                    
+            
+               
+                    
+                   
+            
+                
+                
+
+    
+            
+            
+       
+    
+       
+        
