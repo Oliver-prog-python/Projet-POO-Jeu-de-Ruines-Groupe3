@@ -28,19 +28,20 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-                
-        if player_turn:
-            game.handle_player_turn()  # Tour du joueur
-            player_turn = False  # Passer au tour de l'IA
-        else:
-            game.handle_enemy_turn()  # Tour de l'IA
-            player_turn = True  # Revenir au tour du joueur
+
+        # Gestion des tours pour les deux joueurs
+        game.handle_player_turn()
+
+         # Vérifier les conditions de fin de jeu
+        if game.fin_de_jeu():
+            running = False  # Arrêter la boucle principale si le jeu est terminé
 
         # Rafraîchissement de l'affichage
         game.flip_display()
         clock.tick(FPS)
 
     pygame.quit()
+    print("Jeu terminé.")
 
 if __name__ == "__main__":
     main()
