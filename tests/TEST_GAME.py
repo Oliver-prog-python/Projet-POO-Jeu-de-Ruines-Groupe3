@@ -13,43 +13,39 @@ class Case:
     def __init__(self, type_case="normale"):
         self.type = type_case
         self.hidden = False  # Les cases commencent révélées
+
     
-    def trigger_effect(self, unit, is_human=True):
+    def effet_case(self, unit, is_human=True):
         if self.type == "trésor":
             return f"{unit.name} a trouvé le trésor ! Victoire !"
         if self.type == "piège":
-            if isinstance(unit, Chasseur):
+            if isinstance(unit, Chasseur): # si l'unité est un chasseur 
                 return f"{unit.name} détecte et désamorce un piège."
-            else: # cas où ce n'est pas un chasseur
+            else: # autres unités
                 unit.health -= 20
                 return f"{unit.name} marche sur un piège et perd 20 PV."
 
         elif self.type == "ressource":
-            unit.health += 10
+            unit.health=min(100,unit.health +10) # PV max à 100
             return f"{unit.name} récupère une ressource et gagne 10 PV."
 
         elif self.type == "indice":
             if isinstance(unit,Archeologue):
-                if is_human:
-                    # Défi pour le joueur humain controlant un archéologue
+                    # Défi pour le joueur controlant un archéologue
                     x, y = random.randint(1, 10), random.randint(1, 10)
-                    correct_answer = x + y
+                    reponse_correcte = x + y
                     print(f"Défi : Quel est le résultat de {x} + {y} ?")
                     try:
-                        player_answer = int(input("Votre réponse : "))
-                        if player_answer == correct_answer:
+                        player_reponse = int(input("Votre réponse : "))
+                        if player_reponse == reponse_correcte:
                             self.type = "normale"
                             return f"{unit.name} a résolu l'indice avec succès."
-                        else:
+                        else: #autres unites
                             unit.health -= 10
                             return f"{unit.name} a échoué à résoudre l'indice et perd 10 PV."
                     except ValueError:
                         unit.health -= 10
                         return f"{unit.name} n'a pas répondu correctement et perd 10 PV."
-                else:
-                # L'IA contrôlant un archéologue échoue automatiquement
-                    unit.health-=10
-                    return f"{unit.name} (IA) n'a pas déchiffré l'indice avec succès."
             else:
             # Unité non archéologue : perd toujours 10 PV
                 unit.health -= 10
@@ -59,7 +55,7 @@ class Case:
                 return f"{unit.name} explore efficacement les ruines."
         else:
             return f"{unit.name} explore les ruines sans compétences particulières."
-        return f"{unit.name} avance sur une case normale."
+        return f"{unit.name} avance sur une case normale."                  
       
 class Game:
     def __init__(self, screen):
@@ -91,6 +87,7 @@ class Game:
         self.player_units = self.create_random_team("player")
         self.enemy_units = self.create_random_team("enemy")
 
+        self.debut_player=1 #commencer avec le joueur 1
         self.selected_unit_index = 0
         self.last_action_message = "Aucune action effectuée."
 
@@ -121,11 +118,13 @@ class Game:
             grid[y][x].type = "indice"
 
         return grid
-    
+
     def place_tresor(self):
         """Place un trésor sur une case aléatoire de la grille."""
         while True:
-            x, y = random.randint(0, self.grid_size - 1), random.randint(0, self.grid_size - 1)
+            x = random.randint(1, self.grid_size - 2)  # Ne pas inclure 0 et grid_size - 1
+            y = random.randint(1, self.grid_size - 2)  # Ne pas inclure 0 et grid_size - 1
+            
             if self.grid[y][x].type == "normale":  # Assurez-vous que la case est normale
                 self.grid[y][x].type = "trésor"
                 print(f"Le trésor a été placé sur la case ({x}, {y})")
@@ -142,80 +141,70 @@ class Game:
             for _ in range(3)
         ]
 
+    
     def handle_player_turn(self):
+    # Déterminer les unités du joueur actif
+        actuelle_units = self.player_units if self.debut_player == 1 else self.enemy_units
+        unite_selectionne = actuelle_units[self.selected_unit_index]
+        has_acted = False
 
-         self.action_done = False  # Reset l'action pour le joueur
-         selected_unit = self.player_units[self.selected_unit_index]
+        while not has_acted:
+            self.flip_display()
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    exit()
+                if event.type == pygame.KEYDOWN:
+                    dx, dy = 0, 0
+                    if event.key == pygame.K_LEFT:
+                        dx = -1
+                    elif event.key == pygame.K_RIGHT:
+                        dx = 1
+                    elif event.key == pygame.K_UP:
+                        dy = -1
+                    elif event.key == pygame.K_DOWN:
+                        dy = 1
+                    elif event.key == pygame.K_TAB:
+                        # Passer à l'unité suivante
+                        self.selected_unit_index = (self.selected_unit_index + 1) % len(actuelle_units)
+                        unite_selectionne = actuelle_units[self.selected_unit_index]
+                        self.last_action_message = f"{unite_selectionne.name} est sélectionné."
+                        break
 
-         while not self.action_done:
-             self.flip_display()
-             for event in pygame.event.get():
-                 if event.type == pygame.QUIT:
-                     pygame.quit()
-                     exit()
+                    if dx != 0 or dy != 0:
+                    # Mise à jour de la position
+                        unite_selectionne.x = int(max(0, min(self.grid_size - 1, unite_selectionne.x + dx)))
+                        unite_selectionne.y = int(max(0, min(self.grid_size - 1, unite_selectionne.y + dy)))
 
-                 if event.type == pygame.KEYDOWN:
-                     dx, dy = 0, 0
-                     if event.key == pygame.K_c:  
-                         self.show_commands = not self.show_commands
-                     if event.key == pygame.K_LEFT:
-                         dx = -1
-                     elif event.key == pygame.K_RIGHT:
-                         dx = 1
-                     elif event.key == pygame.K_UP:
-                         dy = -1
-                     elif event.key == pygame.K_DOWN:
-                         dy = 1
-                     elif event.key == pygame.K_TAB:
-                         self.selected_unit_index = (self.selected_unit_index + 1) % len(self.player_units)
-                         selected_unit = self.player_units[self.selected_unit_index]
-                         self.last_action_message = f"{selected_unit.name} est sélectionné."
-                         break
-                     elif event.key == pygame.K_RETURN:  # Touche pour confirmer la fin du tour
-                         self.last_action_message = f"{selected_unit.name} a terminé son tour."
-                         self.action_done = True
-                         break
+                    # Appliquer l'effet de la case
+                    case = self.grid[unite_selectionne.y][unite_selectionne.x]
+                    self.last_action_message = case.effet_case(unite_selectionne, is_human=True)
+                    print(self.last_action_message)
+                    has_acted = True
 
-                     # Si un déplacement est effectué
-                     if dx != 0 or dy != 0:
-                         selected_unit.x = max(0, min(self.grid_size - 1, selected_unit.x + dx))
-                         selected_unit.y = max(0, min(self.grid_size - 1, selected_unit.y + dy))
-                         case = self.grid[selected_unit.y][selected_unit.x]
-                         self.last_action_message = case.trigger_effect(selected_unit)
-                         self.action_done = True  # Fin de l'action après un déplacement
+    # Alterner le joueur actif
+        self.debut_player = 2 if self.debut_player == 1 else 1
 
+    def fin_de_jeu(self):
+    # Vérifier si une équipe a trouvé le trésor
+        for unit in self.player_units + self.enemy_units:
+            x,y=int(unit.x), int(unit.y)
+        if self.grid[unit.y][unit.x].type == "trésor":
+                winner = "Player 1" if unit in self.player_units else "Enemy"
+                print(f"Victoire : {winner} a trouvé le trésor !")
+        return True
 
-    # Definition qui permet de gérer le tour de l'IA
-    def handle_enemy_turn(self):
-    
-        self.last_action_message = "C'est le tour de l'IA."
-        self.flip_display()  # Met à jour l'affichage pour indiquer que c'est le tour de l'IA
-        pygame.time.delay(1000)  # Pause pour indiquer visuellement le tour de l'IA
+    # Vérifier si une équipe a perdu toutes ses unités
+        if all(unit.health <= 0 for unit in self.player_units):
+            print("Victoire : l'ennemy a gagné car toutes les unités de Player  sont KO !")
+            return True
+        if all(unit.health <= 0 for unit in self.enemy_units):
+            print("Victoire : Player  a gagné car toutes les unités de l'ennemy sont KO !")
+            return True
 
-        # Choisir une unité de l'IA pour effectuer une action
-        enemy_unit = random.choice(self.enemy_units)  # Choisir une unité aléatoire
-        target_unit = random.choice(self.player_units)  # Choisir une cible aléatoire du joueur
-
-        # Déplacer l'unité ennemie vers la cible
-        dx = 1 if enemy_unit.x < target_unit.x else -1 if enemy_unit.x > target_unit.x else 0
-        dy = 1 if enemy_unit.y < target_unit.y else -1 if enemy_unit.y > target_unit.y else 0
-
-        # Effectuer le déplacement
-        enemy_unit.x = max(0, min(self.grid_size - 1, enemy_unit.x + dx))
-        enemy_unit.y = max(0, min(self.grid_size - 1, enemy_unit.y + dy))
-
-        # Vérifier les effets de la case sur laquelle l'ennemi arrive
-        case = self.grid[enemy_unit.y][enemy_unit.x]
-        self.last_action_message = case.trigger_effect(enemy_unit)
-
-        self.flip_display()  # Rafraîchir l'affichage avec la dernière action de l'IA
-        pygame.time.delay(1000)  # Pause pour montrer l'action de l'IA
-
-    
-    def draw_grid(self):
-        """
-        Dessine la grille avec toutes les cases affichées en fonction de leur type.
-        """
+        return False
+         
+    def draw_grid(self): # pour dessiner la grille de jeu
         for y, row in enumerate(self.grid):
             for x, case in enumerate(row):
                 # Utiliser l'image correspondant au type de la case
@@ -230,10 +219,43 @@ class Game:
                     1,
                 )
 
-    def draw_units(self):
-        for unit in self.player_units + self.enemy_units:
-            unit.draw(self.screen, self.cell_size)
 
+    def draw_health_bar(self, unit, color):
+        """
+        Dessine une barre de vie au-dessus de l'unité.
+        :param unit: L'unité pour laquelle dessiner la barre de vie.
+        :param color: La couleur de la barre de vie (verte ou rouge).
+        """
+        # Calculer les dimensions de la barre de vie
+        largeur_barre = self.cell_size
+        hauteur_barre = 5
+        health_ratio = unit.health / 100  # Supposons que 100 est le maximum de PV
+
+        # Position de la barre (juste au-dessus de l'unité)
+        barre_x = unit.x * self.cell_size
+        barre_y = unit.y * self.cell_size - hauteur_barre - 2  # 2 pixels d'écart
+
+        # Dessiner l'arrière-plan de la barre (grise)
+        pygame.draw.rect(self.screen, (50, 50, 50), (barre_x, barre_y, largeur_barre, hauteur_barre))
+
+        # Dessiner la barre de vie (colorée)
+        pygame.draw.rect(self.screen, color, (barre_x, barre_y, largeur_barre * health_ratio, hauteur_barre))
+
+
+    def draw_units(self):
+        """
+        Dessine toutes les unités et leurs barres de vie.
+         """
+        for unit in self.player_units:
+            unit.draw(self.screen, self.cell_size)  # Dessiner l'unité
+            self.draw_health_bar(unit, (0, 255, 0))  # Barre de vie verte pour le joueur 1
+
+        for unit in self.enemy_units:
+            unit.draw(self.screen, self.cell_size)  # Dessiner l'unité
+            self.draw_health_bar(unit, (255, 0, 0))  # Barre de vie rouge pour le joueur 2
+  
+    
+    
     
     def draw_ui(self):
         pygame.draw.rect(self.screen, (50, 50, 50), (GRID_WIDTH, 0, UI_WIDTH, HEIGHT))
