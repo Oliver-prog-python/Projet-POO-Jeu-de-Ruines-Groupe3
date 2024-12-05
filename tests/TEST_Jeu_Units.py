@@ -40,8 +40,13 @@ class Unit:
     
 class Explorateur(Unit):
     def __init__(self, x, y,team):
-        super().__init__(x, y,"images/aventurier.png" , team,"Explorateur")
+        super().__init__(x+0.3, y-0.1,"images/aventurier.png" , team,"Explorateur")
         self.speed = 5
+        self.name="Explorateur"
+        # Charger l'image et redimensionner
+        self.image = pygame.image.load("images/aventurier.png")  # Charger l'image
+        self.image = pygame.transform.scale(self.image, (185, 85))  # Redimensionner à 50x50 pixels
+
 
     def revele_zone(self, grid):
         """Révèle une zone 3x3 autour de l'Explorateur."""
@@ -63,6 +68,7 @@ class Archeologue(Unit):
     def __init__(self, x, y,team):
         super().__init__(x, y, "images/archeologue.png",team, "Archéologue")
         self.speed = 2
+        self.name= "Archeologue"
 
     def decrypter_indice(self, case):
         """Décrypte un indice sur une case."""
@@ -80,6 +86,7 @@ class Chasseur(Unit):
     def __init__(self, x, y,team):
         super().__init__(x, y, "images/chasseur.png", team,"Chasseur")
         self.speed = 3
+        self.name="Chasseur"
 
     def poser_piege(self, grid, x, y):
         """Pose un piège sur une case spécifique."""
