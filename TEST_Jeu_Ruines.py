@@ -1,12 +1,5 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Nov 29 17:14:34 2024
-
-@author: olivermaamary
-"""
 import pygame
-from Test_Jeu_Units import Explorateur, Archeologue, Chasseur
+from TEST_Jeu_Units import Explorateur, Archeologue, Chasseur
 
 # Initialiser pygame et la grille
 pygame.init()
@@ -143,6 +136,68 @@ def draw_ui(screen, selected_unit, last_action_message):
     action_message = font_large.render(f"Action : {last_action_message}", True, (255, 255, 255))
     screen.blit(action_message, (GRID_WIDTH + 20, y_offset))
 
+def draw_accessible_areas_with_selection(unit, screen, cell_size, selected_position):
+    """Dessine les zones accessibles et surligne la position sélectionnée."""
+    x, y = unit.x, unit.y
+
+    # Définir la portée de déplacement selon le type d'unité
+    if isinstance(unit, Archeologue) or isinstance(unit, Chasseur):
+        max_range = 1
+    elif isinstance(unit, Explorateur):
+        max_range = 2
+    else:
+        max_range = 0
+
+    for dx in range(-max_range, max_range + 1):
+        for dy in range(-max_range, max_range + 1):
+            nx, ny = x + dx, y + dy
+
+            # Vérifier que la case est dans la grille et respecte la distance de Manhattan
+            if 0 <= nx < 10 and 0 <= ny < 10 and abs(dx) + abs(dy) <= max_range:
+                # Remplir l'intérieur de la case
+                color = (173, 216, 230)  # Bleu pâle pour les zones accessibles
+                if selected_position == (nx, ny):
+                    color = (0, 255, 0)  # Vert pour la position sélectionnée
+                pygame.draw.rect(
+                    screen,
+                    color,
+                    (nx * cell_size, ny * cell_size, cell_size, cell_size),
+                    0  # Remplissage complet
+                )
+
+                # Dessiner les contours de la case pour rendre les traits visibles
+                pygame.draw.rect(
+                    screen,
+                    (0, 0, 0),  # Noir pour les contours
+                    (nx * cell_size, ny * cell_size, cell_size, cell_size),
+                    1  # Épaisseur de la ligne de contour
+                )
+
+def get_accessible_positions(unit, grid_size):
+    """Retourne une liste des positions accessibles en fonction du type d'unité."""
+    x, y = unit.x, unit.y
+
+    # Définir la portée de déplacement selon le type d'unité
+    if isinstance(unit, Archeologue) or isinstance(unit, Chasseur):
+        max_range = 1  # 1 case dans les 4 directions
+    elif isinstance(unit, Explorateur):
+        max_range = 2  # 2 cases dans les 4 directions
+    else:
+        max_range = 0  # Par défaut, aucune zone
+
+    accessible_positions = []
+
+    # Parcourir toutes les cases accessibles dans les limites définies
+    for dx in range(-max_range, max_range + 1):
+        for dy in range(-max_range, max_range + 1):
+            nx, ny = x + dx, y + dy
+            # Vérifier que la case est dans les limites de la grille et respecte la distance de Manhattan
+            if 0 <= nx < grid_size and 0 <= ny < grid_size and abs(dx) + abs(dy) <= max_range:
+                accessible_positions.append((nx, ny))
+
+    return accessible_positions
+
+
 # Boucle principale
 def main():
     running = True
@@ -157,25 +212,32 @@ def main():
 
     # Variable pour suivre l'unité sélectionnée
     selected_unit_index = 0  # Indice de l'unité sélectionnée (commence par Explorateur)
-    
+    selected_position = None  # Position en cours de sélection
+    turn_done = False  # Indique si l'unité a terminé son tour
+
     global last_action_message
     last_action_message = "Aucune action effectuée."  # Message par défaut
     
     while running:
         screen.fill((0, 0, 0))  # Remplir l'écran avec du noir
         draw_grid(grid, screen)  # Dessiner la grille
+        # 2. Dessiner les cases accessibles pour l'unité sélectionnée
+        draw_accessible_areas_with_selection(units[selected_unit_index], screen, CELL_SIZE,selected_position)
 
         # Dessiner toutes les unités avec leur sélection
         for i, unit in enumerate(units):
             is_selected = (i == selected_unit_index)
             draw_unit_with_selection(unit, screen, CELL_SIZE, is_selected)
-
         # Dessiner l'interface utilisateur
         draw_ui(screen, units[selected_unit_index], last_action_message)
-        
+        # Dessiner toutes les unités avec leur sélection
+        for i, unit in enumerate(units):
+            is_selected = (i == selected_unit_index)
+            draw_unit_with_selection(unit, screen, CELL_SIZE, is_selected)
+
         
         # Gérer les événements et actualiser l'écran
-        for event in pygame.event.get():
+        """for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
 
@@ -192,7 +254,49 @@ def main():
                 elif event.key == pygame.K_LEFT and units[selected_unit_index].x > 0:
                     units[selected_unit_index].x -= 1
                 elif event.key == pygame.K_RIGHT and units[selected_unit_index].x < 9:
-                    units[selected_unit_index].x += 1
+                    units[selected_unit_index].x += 1"""
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+
+            elif event.type == pygame.KEYDOWN:
+                if not turn_done:  # Si le tour n'est pas terminé
+                    accessible_positions = get_accessible_positions(units[selected_unit_index], 10)
+
+                    # Initialiser la position sélectionnée si ce n'est pas déjà fait
+                    if selected_position is None:
+                        selected_position = (units[selected_unit_index].x, units[selected_unit_index].y)
+
+                    # Navigation dans les zones accessibles
+                    current_x, current_y = selected_position
+                    if event.key == pygame.K_UP:
+                        next_position = (current_x, current_y - 1)
+                    elif event.key == pygame.K_DOWN:
+                        next_position = (current_x, current_y + 1)
+                    elif event.key == pygame.K_LEFT:
+                        next_position = (current_x - 1, current_y)
+                    elif event.key == pygame.K_RIGHT:
+                        next_position = (current_x + 1, current_y)
+                    else:
+                        next_position = selected_position
+
+                    # Vérifier si la position sélectionnée est dans les zones accessibles
+                    if next_position in accessible_positions:
+                        selected_position = next_position
+
+                    # Validation du déplacement
+                    if event.key == pygame.K_SPACE:
+                        # Déplacer l'unité à la position sélectionnée
+                        units[selected_unit_index].x, units[selected_unit_index].y = selected_position
+                        turn_done = True  # Fin du tour pour cette unité
+                        print(f"Déplacement validé pour {units[selected_unit_index].name} à {selected_position}.")
+
+                # Changer d'unité avec TAB
+                if event.key == pygame.K_TAB and turn_done:
+                    turn_done = False
+                    selected_position = None
+                    selected_unit_index = (selected_unit_index + 1) % len(units)
+                        
                 
                 # Activer les compétences:
                 
@@ -257,4 +361,5 @@ def main():
     pygame.quit()
 
 if __name__ == "__main__":
+    
     main()
