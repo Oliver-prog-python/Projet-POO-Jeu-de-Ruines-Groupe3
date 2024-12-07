@@ -40,12 +40,12 @@ class Unit:
     
 class Explorateur(Unit):
     def __init__(self, x, y,team):
-        super().__init__(x+0.3, y-0.1,"images/aventurier.png" , team,"Explorateur")
+        super().__init__(x, y,"images/explorateur.png" , team,"Explorateur")
         self.speed = 5
         self.name="Explorateur"
         # Charger l'image et redimensionner
-        self.image = pygame.image.load("images/aventurier.png")  # Charger l'image
-        self.image = pygame.transform.scale(self.image, (185, 85))  # Redimensionner à 50x50 pixels
+        self.image = pygame.image.load("images/explorateur.png")  # Charger l'image
+        self.image = pygame.transform.scale(self.image, (85, 70))  # Redimensionner 
 
 
     def revele_zone(self, grid):
@@ -84,7 +84,8 @@ class Archeologue(Unit):
 
 class Chasseur(Unit):
     def __init__(self, x, y,team):
-        super().__init__(x, y, "images/chasseur.png", team,"Chasseur")
+        super().__init__(x, y, "images/chasseur_2.png", team,"Chasseur")
+        self.image = pygame.transform.scale(self.image, (100, 75))  # Redimensionner 
         self.speed = 3
         self.name="Chasseur"
 
