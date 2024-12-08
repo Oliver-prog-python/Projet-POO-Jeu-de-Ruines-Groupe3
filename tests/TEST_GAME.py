@@ -15,7 +15,7 @@ class Case:
         self.hidden = False  # Les cases commencent révélées
 
     
-    def effet_case(self, unit, is_human=True):
+    def effet_case(self, unit):
         if self.type == "trésor":
             return f"{unit.name} a trouvé le trésor ! Victoire !"
         if self.type == "piège":
@@ -91,15 +91,12 @@ class Game:
         self.selected_unit_index = 0
         self.last_action_message = "Aucune action effectuée."
 
-    def initialize_grid(self):
-        """
-        Crée une grille avec des cases de différents types en fonction de proportions prédéfinies.
-        """
+    def initialize_grid(self): # créer la grille de jeu 
         grid = [[Case() for _ in range(self.grid_size)] for _ in range(self.grid_size)]
     
-    # Définir les proportions
+    # Défini les proportions de cases 
         nombre_pieges = int(self.grid_size * self.grid_size * 0.2)  # 20% de pièges
-        nombre_ressources = int(self.grid_size * self.grid_size * 0.2)  # 10% de ressources
+        nombre_ressources = int(self.grid_size * self.grid_size * 0.1)  # 10% de ressources
         nombre_indices= int(self.grid_size * self.grid_size * 0.1)  # 10% d'indices
 
     # Placer des pièges
@@ -119,8 +116,7 @@ class Game:
 
         return grid
 
-    def place_tresor(self):
-        """Place un trésor sur une case aléatoire de la grille."""
+    def place_tresor(self): # place le trésor sur la grille aléatoirement
         while True:
             x = random.randint(1, self.grid_size - 2)  # Ne pas inclure 0 et grid_size - 1
             y = random.randint(1, self.grid_size - 2)  # Ne pas inclure 0 et grid_size - 1
@@ -130,7 +126,7 @@ class Game:
                 print(f"Le trésor a été placé sur la case ({x}, {y})")
                 break
     
-    def create_random_team(self, team):
+    def creation_random_team(self, team):
         unit_classes = [Explorateur, Archeologue, Chasseur]
         return [
             random.choice(unit_classes)(
@@ -143,7 +139,7 @@ class Game:
 
     
     def handle_player_turn(self):
-    # Déterminer les unités du joueur actif
+    # Détermine les unités du joueur actif
         actuelle_units = self.player_units if self.debut_player == 1 else self.enemy_units
         unite_selectionne = actuelle_units[self.selected_unit_index]
         has_acted = False
@@ -185,14 +181,12 @@ class Game:
     # Alterner le joueur actif
         self.debut_player = 2 if self.debut_player == 1 else 1
 
-    def fin_de_jeu(self):
-    # Vérifier si une équipe a trouvé le trésor
-        for unit in self.player_units + self.enemy_units:
-            x,y=int(unit.x), int(unit.y)
-        if self.grid[unit.y][unit.x].type == "trésor":
+    def fin_de_jeu(self): 
+        for unit in self.player_units + self.enemy_units: # verifie qui a trouvé le trésor
+            if self.grid[unit.y][unit.x].type == "trésor":
                 winner = "Player 1" if unit in self.player_units else "Enemy"
                 print(f"Victoire : {winner} a trouvé le trésor !")
-        return True
+                return True
 
     # Vérifier si une équipe a perdu toutes ses unités
         if all(unit.health <= 0 for unit in self.player_units):
@@ -201,7 +195,7 @@ class Game:
         if all(unit.health <= 0 for unit in self.enemy_units):
             print("Victoire : Player  a gagné car toutes les unités de l'ennemy sont KO !")
             return True
-
+    # sinon, le jeu continue
         return False
          
     def draw_grid(self): # pour dessiner la grille de jeu
