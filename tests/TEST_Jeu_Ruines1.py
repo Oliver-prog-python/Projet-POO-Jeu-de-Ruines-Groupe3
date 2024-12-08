@@ -78,6 +78,7 @@ def draw_ui(screen, selected_unit, last_action_message):
         #Touches pour le deplacement et choix de l'unité :
         "Flèches : Déplacer l'unité",
         "TAB : Changer d'unité",
+        "espace: valider la position de l'unité",
         
         # Touches pour les compétences Explorateur :
             
@@ -237,24 +238,6 @@ def main():
 
         
         # Gérer les événements et actualiser l'écran
-        """for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-
-            elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_TAB:  # Changer d'unité
-                    selected_unit_index = (selected_unit_index + 1) % len(units)
-                    print(f"Unité sélectionnée : {units[selected_unit_index].name}")
-                
-                # Déplacement de l'unité selectionnée
-                elif event.key == pygame.K_UP and units[selected_unit_index].y > 0:
-                    units[selected_unit_index].y -= 1
-                elif event.key == pygame.K_DOWN and units[selected_unit_index].y < 9:
-                    units[selected_unit_index].y += 1
-                elif event.key == pygame.K_LEFT and units[selected_unit_index].x > 0:
-                    units[selected_unit_index].x -= 1
-                elif event.key == pygame.K_RIGHT and units[selected_unit_index].x < 9:
-                    units[selected_unit_index].x += 1"""
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
