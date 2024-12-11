@@ -38,7 +38,6 @@ def main_menu(screen):
 #player_turn = True 
 
 def main():
-    #global player_turn
     pygame.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
     pygame.display.set_caption("Jeu des Ruines")
