@@ -17,12 +17,16 @@ class Case:
     
     def effet_case(self, unit):
         if self.type == "trésor":
+            game.treasure_animations(unit.x,unit.y)
             return f"{unit.name} a trouvé le trésor ! Victoire !"
         if self.type == "piège":
             if isinstance(unit, Chasseur): # si l'unité est un chasseur 
                 return f"{unit.name} détecte et désamorce un piège."
             else: # autres unités
+                game.explosion_animation(unit.x, unit.y)
                 unit.health -= 20
+                unit.health = max(0, unit.health)  # Empêcher les PV négatifs
+                game.check_et_supp_unit(unit)  # Vérifier si l'unité doit être supprimée 
                 return f"{unit.name} marche sur un piège et perd 20 PV."
 
         elif self.type == "ressource":
@@ -31,31 +35,45 @@ class Case:
 
         elif self.type == "indice":
             if isinstance(unit,Archeologue):
-                    # Défi pour le joueur controlant un archéologue
-                    x, y = random.randint(1, 10), random.randint(1, 10)
-                    reponse_correcte = x + y
-                    print(f"Défi : Quel est le résultat de {x} + {y} ?")
+                # Défi pour le joueur controlant un archéologue
+                    choix_enigme = game.genere_enigme()
+                    print(f"Énigme : {choix_enigme['question']}") 
                     try:
-                        player_reponse = int(input("Votre réponse : "))
-                        if player_reponse == reponse_correcte:
-                            self.type = "normale"
-                            return f"{unit.name} a résolu l'indice avec succès."
-                        else: #autres unites
-                            unit.health -= 10
-                            return f"{unit.name} a échoué à résoudre l'indice et perd 10 PV."
+                        player_reponse = (input("Votre réponse : "))
+                        if str(player_reponse).strip == str(choix_enigme["réponse"]):
+                            self.type = "normale"  # L'indice est résolu
+                            unit.enigme_non_resolue=False #libère l'archéologue
+                            return f"{unit.name} a résolu l'enigme avec succès !"
+                        else: 
+                            unit.health-=5
+                            unit.health = max(0, unit.health)  # Empêcher les PV négatifs
+                            unit.enigme_non_resolue=True # Bloque l'archéologue
+                            if unit.health == 0:
+                                game.check_et_supp_unit(unit)  # Supprimer si PV = 0
+                                return f"{unit.name} a échoué et est éliminé de la carte."
+                        return f"{unit.name} a échoué à résoudre l'indice et perd 10 PV."        
                     except ValueError:
-                        unit.health -= 10
+                        unit.health -= 5
+                        unit.health = max(0, unit.health)
+                        unit.enigme_non_resolue=True
+                        if unit.health == 0:
+                            game.check_et_supp_unit(unit)
+                            return f"{unit.name} n'a pas répondu correctement et est éliminé."
                         return f"{unit.name} n'a pas répondu correctement et perd 10 PV."
-            else:
-            # Unité non archéologue : perd toujours 10 PV
+            else: #autres unites
                 unit.health -= 10
-                return f"{unit.name} ne peut pas déchiffrer l'indice et perd 10 PV."
+                unit.health = max(0, unit.health)
+                if unit.health == 0:
+                    game.check_et_supp_unit(unit)
+                    return f"{unit.name} est éliminé sur une case indice."
+                return f"{unit.name} ne peut pas résoudre l'indice et perd 10 PV.
         elif self.type == "ruines":
             if isinstance(unit, Explorateur):
                 return f"{unit.name} explore efficacement les ruines."
         else:
             return f"{unit.name} explore les ruines sans compétences particulières."
-        return f"{unit.name} avance sur une case normale."                  
+        return f"{unit.name} avance sur une case normale."
+        
       
 class Game:
     def __init__(self, screen):
@@ -137,7 +155,27 @@ class Game:
             for _ in range(3)
         ]
 
-    
+    def genere_enigme(self): #génère une énigme 
+        enigmes = [
+            # Carré magique
+            {
+                "question": "Carré magique :\n2 7 6\n9 _ 1\n4 3 8\nQuel est le chiffre manquant ?",
+                "réponse": 5
+            },
+            # Séquence numérique
+            {
+                "question": "Suite : 1, 1, 2, 3, 5, ?\nQuel est le prochain nombre ?",
+                "réponse": 8
+            },
+            # Séquence alphabétique
+            {
+                "question": "Suite : A, C, E, G, ?\nQuelle est la prochaine lettre ?",
+                "réponse": "I"
+            }
+        ]
+        self.choix_enigme = random.choice(enigmes)
+        return self.choix_enigme
+        
     def handle_player_turn(self):
     # Détermine les unités du joueur actif
         actuelle_units = self.player_units if self.debut_player == 1 else self.enemy_units
@@ -169,14 +207,27 @@ class Game:
 
                     if dx != 0 or dy != 0:
                     # Mise à jour de la position
-                        unite_selectionne.x = int(max(0, min(self.grid_size - 1, unite_selectionne.x + dx)))
-                        unite_selectionne.y = int(max(0, min(self.grid_size - 1, unite_selectionne.y + dy)))
+                        nouveau_x= int(max(0, min(self.grid_size - 1, unite_selectionne.x + dx)))
+                        nouveau_y = int(max(0, min(self.grid_size - 1, unite_selectionne.y + dy)))
+                    
+                    # mise à jour des coordonnées de l'unité 
+                    unite_selectionne.x, unite_selectionne.y = nouveau_x, nouveau_y
 
+                    self.flip_display()
+                    
                     # Appliquer l'effet de la case
                     case = self.grid[unite_selectionne.y][unite_selectionne.x]
                     self.last_action_message = case.effet_case(unite_selectionne, is_human=True)
                     print(self.last_action_message)
-                    has_acted = True
+
+                    # Vérifier si l'unité doit être supprimée
+                    self.check_et_supp_unit(unite_selectionne)  
+
+                    # Vérifier si le jeu est terminé après l'action
+                    if self.fin_de_jeu():
+                        return  # Arrêter le tour si le jeu est terminé
+                    
+                    has_acted=True
 
     # Alterner le joueur actif
         self.debut_player = 2 if self.debut_player == 1 else 1
@@ -241,14 +292,25 @@ class Game:
         Dessine toutes les unités et leurs barres de vie.
          """
         for unit in self.player_units:
-            unit.draw(self.screen, self.cell_size)  # Dessiner l'unité
+            self.screen.blit(unit.image, (unit.x * self.cell_size, unit.y * self.cell_size))
             self.draw_health_bar(unit, (0, 255, 0))  # Barre de vie verte pour le joueur 1
 
         for unit in self.enemy_units:
-            unit.draw(self.screen, self.cell_size)  # Dessiner l'unité
+            self.screen.blit(unit.image, (unit.x * self.cell_size, unit.y * self.cell_size))
             self.draw_health_bar(unit, (255, 0, 0))  # Barre de vie rouge pour le joueur 2
   
-    
+
+    def check_et_supp_unit(self, unit):
+
+        if unit.health <= 0:
+            unit_list = self.player_units if unit.team == "player" else self.enemy_units
+            if unit in unit_list:
+            # Supprimer l'unité de la liste
+                unit_list.remove(unit)
+                #self.draw_elimination_effect(unit)  # Afficher l'effet d'élimination
+            print(f"{unit.name} a été éliminé et a disparu de la carte.")
+        self.flip_display()  # Rafraîchir l'écran immédiatement
+
     
     
     def draw_ui(self):
@@ -335,6 +397,69 @@ class Game:
         y_offset += 50  # Espacement après le titre
         action_message = font_medium.render(f"Action : {self.last_action_message}", True, (255, 255, 255))
         self.screen.blit(action_message, (GRID_WIDTH + 20, y_offset))
+
+    def explosion_animation(self, x, y):
+    # Couleurs de l'explosion (Rouge -> Orange -> Jaune -> Disparaît)
+        explosion_colors = [(255, 0, 0), (255, 69, 0), (255, 140, 0), (255, 255, 0)]
+
+    # Centre de l'explosion
+        center_x = x * self.cell_size + self.cell_size // 2
+        center_y = y * self.cell_size + self.cell_size // 2
+
+    # Créer plusieurs étapes d'explosion
+        for step in range(1, 16):  # 15 étapes pour une animation fluide
+            self.flip_display()  # Rafraîchir l'écran
+
+            for i, color in enumerate(explosion_colors):
+            # Dessiner les cercles successifs
+                pygame.draw.circle(
+                    self.screen,
+                    color,
+                    (center_x, center_y),
+                    step * (i + 2),  # Le rayon augmente selon la couleur
+                    width=5 - i  # Les cercles extérieurs sont plus fins
+            )
+
+        # Mettre à jour l'écran
+        pygame.display.flip()
+        pygame.time.delay(50)  # Pause entre chaque étape
+
+
+    def treasure_animation(self, x, y):
+        # Charger la police pour le texte
+        font = pygame.font.Font("police.ttf", 72)  # Police pixel art avec taille 72
+
+
+        for i in range(30):  # Répéter l'effet 
+            self.flip_display()  # Réinitialiser l'affichage pour éviter d'écraser la grille
+
+            # Calculer le rayon des cercles pour l'effet
+            radius = i * 10  # Le rayon augmente à chaque itération
+            alpha = max(255 - (i * 12),0) # Réduire l'opacité
+
+           # Créer une surface temporaire avec transparence
+            temp_surface = pygame.Surface((self.cell_size * 2, self.cell_size * 2), pygame.SRCALPHA)
+            pygame.draw.circle(
+                temp_surface,
+                (255, 223, 0, alpha),  # Couleur dorée avec transparence
+                (self.cell_size, self.cell_size),  # Centre du cercle
+                radius // 2
+            )
+           # Blit la surface temporaire sur l'écran principal
+            self.screen.blit(temp_surface, (x * self.cell_size - self.cell_size // 2, y * self.cell_size - self.cell_size // 2))
+
+
+         # Afficher un message rouge au centre de l'écran
+            message = "Victoire !"
+            text = font.render(message, True, (255, 0, 0))  # Rouge
+            text_rect = text.get_rect(center=(self.screen.get_width() // 2, self.screen.get_height() // 2))
+            self.screen.blit(text, text_rect)
+
+        # Mettre à jour l'écran et ajouter un délai
+            pygame.display.flip()
+            pygame.time.delay(100)  # 100 ms entre chaque étape de l'animation
+
+    
 
     def flip_display(self):
         self.screen.fill((0, 0, 0))
