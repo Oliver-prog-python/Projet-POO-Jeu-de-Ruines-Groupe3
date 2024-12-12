@@ -392,7 +392,7 @@ class Game:
                         if self.selected_position in accessible_positions:
                             unite_selectionne.x, unite_selectionne.y = self.selected_position
                             case = self.grid[unite_selectionne.y][unite_selectionne.x]
-                            self.last_action_message = case.effet_case(unite_selectionne)
+                            self.last_action_message = case.effet_case(unite_selectionne,self)
                             print(self.last_action_message)
                             has_acted = True
                         else:
@@ -448,8 +448,6 @@ class Game:
                         if self.fin_de_jeu():
                             return  # Arrêter le tour si le jeu est terminé
                     
-                    
-                    has_acted = True
     # Alterner le joueur actif
         if has_acted:
             self.selected_position = None
