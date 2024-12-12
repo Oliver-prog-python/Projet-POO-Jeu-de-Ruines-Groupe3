@@ -8,6 +8,24 @@ GRID_WIDTH = 800
 UI_WIDTH = WIDTH - GRID_WIDTH
 CELL_SIZE = GRID_WIDTH // 10
 
+def get_accessible_positions(unit, grid_size):
+    """Retourne une liste des positions accessibles en fonction de la portée de l'unité."""
+    x, y = unit.x, unit.y
+
+    # Définir la portée de déplacement selon le type d'unité
+    max_range = 1 if isinstance(unit, (Archeologue, Chasseur)) else 2  # Portée par défaut
+
+    accessible_positions = []
+
+    # Parcourir toutes les cases accessibles dans les limites définies
+    for dx in range(-max_range, max_range + 1):
+        for dy in range(-max_range, max_range + 1):
+            nx, ny = x + dx, y + dy
+            # Vérifier que la case est dans les limites de la grille et respecte la distance de Manhattan
+            if 0 <= nx < grid_size and 0 <= ny < grid_size and abs(dx) + abs(dy) <= max_range:
+                accessible_positions.append((nx, ny))
+
+    return accessible_positions
 
 class Case:
     def __init__(self, type_case="normale"):
@@ -24,10 +42,10 @@ class Case:
                 return f"{unit.name} détecte et désamorce un piège."
             else:  # autres unités
                 game.explosion_animation(unit.x, unit.y)
-                unit.health -= 20
+                unit.health -= 15
                 unit.health = max(0, unit.health)  # Empêcher les PV négatifs
                 game.check_et_supp_unit(unit)  # Vérifier si l'unité doit être supprimée
-                return f"{unit.name} marche sur un piège et perd 20 PV."
+                return f"{unit.name} marche sur un piège et perd 15 PV."
 
         elif self.type == "ressource":
             unit.health = min(100, unit.health + 10)  # PV max à 100
@@ -124,7 +142,10 @@ class Game:
         self.enemy_units = self.creation_random_team("enemy")
         self.initialize_teams()
         self.choix_enigme = None
-        
+
+        # Ajouter cette ligne pour suivre la position sélectionnée
+        self.selected_position = None  # Position sélectionnée (initialement None)
+         
     
 
          # Charger les images des cases
@@ -158,7 +179,7 @@ class Game:
         grid = [[Case("normale") for _ in range(self.grid_size)] for _ in range(self.grid_size)]
     
     # Définir les proportions
-        nombre_pieges = int(self.grid_size * self.grid_size * 0.2)  # 20% de pièges
+        nombre_pieges = int(self.grid_size * self.grid_size * 0.1)  # 10% de pièges
         nombre_ressources = int(self.grid_size * self.grid_size * 0.2)  # 20% de ressources
         nombre_indices= int(self.grid_size * self.grid_size * 0.1)  # 10% d'indices
 
@@ -322,22 +343,25 @@ class Game:
         return self.choix_enigme
 
     def handle_player_turn(self):
-    # Déterminer les unités du joueur actif
+    """
+        Gère le tour du joueur actif, permettant à chaque équipe (player et enemy) de sélectionner une unité et de jouer.
+        """
         actuelle_units = self.player_units if self.debut_player == 1 else self.enemy_units
+        ennemis = self.enemy_units if self.debut_player == 1 else self.player_units
+
         unite_selectionne = actuelle_units[self.selected_unit_index]
+        if self.selected_position is None:
+            self.selected_position = (unite_selectionne.x, unite_selectionne.y)
+
         has_acted = False
-        
+
         while not has_acted:
             self.flip_display()
-            # Bloquer les déplacements si une énigme est en attente
-            if isinstance(unite_selectionne, Archeologue) and unite_selectionne.enigme_non_resolue:
-                print(f"{unite_selectionne.name} doit résoudre l'énigme avant de se déplacer.")
-                break
-
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     exit()
+
                 if event.type == pygame.KEYDOWN:
                     dx, dy = 0, 0
                     if event.key == pygame.K_LEFT:
@@ -348,32 +372,74 @@ class Game:
                         dy = -1
                     elif event.key == pygame.K_DOWN:
                         dy = 1
+
                     elif event.key == pygame.K_TAB:
-                        # Passer à l'unité suivante
                         self.selected_unit_index = (self.selected_unit_index + 1) % len(actuelle_units)
                         unite_selectionne = actuelle_units[self.selected_unit_index]
+                        self.selected_position = (unite_selectionne.x, unite_selectionne.y)
                         self.last_action_message = f"{unite_selectionne.name} est sélectionné."
                         break
 
                     if dx != 0 or dy != 0:
-                    # Mise à jour de la position
-                        nouveau_x = (max(0, min(self.grid_size - 1, unite_selectionne.x +dx )))
-                        nouveau_y = (max(0, min(self.grid_size - 1, unite_selectionne.y+dy)))
-                    
-                    # mise à jour des coordonnées de l'unité 
-                        unite_selectionne.x=nouveau_x
-                        unite_selectionne.y=nouveau_y
-                        self.flip_display()
-                    
-                    # Bloquer le déplacement si l'unité est bloquée sur une porte
-                    #if unite_selectionne.x != nouveau_x or unite_selectionne.y != nouveau_y:
-                        # L'unité est restée sur la même case, le déplacement est annulé
-                        #continue
+                        new_x = max(0, min(self.grid_size - 1, self.selected_position[0] + dx))
+                        new_y = max(0, min(self.grid_size - 1, self.selected_position[1] + dy))
+                        accessible_positions = get_accessible_positions(unite_selectionne, self.grid_size)
+                        if (new_x, new_y) in accessible_positions:
+                            self.selected_position = (new_x, new_y)
 
-                    # Appliquer l'effet de la case après le déplacement
-                        case = self.grid[nouveau_y][nouveau_x]
-                        self.last_action_message = case.effet_case(unite_selectionne,self)
-                        print(self.last_action_message)
+                    if event.key == pygame.K_SPACE:
+                        accessible_positions = get_accessible_positions(unite_selectionne, self.grid_size)
+                        if self.selected_position in accessible_positions:
+                            unite_selectionne.x, unite_selectionne.y = self.selected_position
+                            case = self.grid[unite_selectionne.y][unite_selectionne.x]
+                            self.last_action_message = case.effet_case(unite_selectionne)
+                            print(self.last_action_message)
+                            has_acted = True
+                        else:
+                            print("Déplacement non valide.")
+
+                    # Appeler une compétence
+                    if event.key == pygame.K_r and isinstance(unite_selectionne, Explorateur):  # Coup rapide
+                        cibles = unite_selectionne.get_cibles_accessibles(ennemis, self.grid_size)
+                        if cibles:
+                            cible = cibles[0]
+                            competence = unite_selectionne.competences[0]
+                            competence.utiliser(unite_selectionne, cible, self)
+                            has_acted = True
+
+                    elif event.key == pygame.K_t and isinstance(unite_selectionne, Archeologue):  # Attaque ciblée
+                        cibles = unite_selectionne.get_cibles_accessibles(ennemis, self.grid_size)
+                        if cibles:
+                            cible = cibles[0]
+                            competence = unite_selectionne.competences[0]
+                            competence.utiliser(unite_selectionne, cible, self)
+                            has_acted = True
+                    elif event.key == pygame.K_a and isinstance(unite_selectionne, Archeologue):  # Analyse de l'environnement
+                        competence = unite_selectionne.competences[2]
+                        competence.utiliser(unite_selectionne, None, self)
+                        has_acted = True
+
+                    elif event.key == pygame.K_y and isinstance(unite_selectionne, Chasseur):  # Tir à distance
+                        cibles = unite_selectionne.get_cibles_accessibles(ennemis, self.grid_size)
+                        if cibles:
+                            cible = cibles[0]
+                            competence = unite_selectionne.competences[0]
+                            competence.utiliser(unite_selectionne, cible, self)
+                            has_acted = True
+                    elif event.key == pygame.K_e and isinstance(unite_selectionne, Explorateur):  # Révéler zone
+                        competence = unite_selectionne.competences[1]  # Hypothèse : Révélation est la deuxième compétence
+                        competence.utiliser(unite_selectionne, None, self)
+                        self.afficher_effet_revelation(unite_selectionne)  # Ajout d'un effet visuel pour la révélation
+                        has_acted = True
+                    elif event.key == pygame.K_p and isinstance(unite_selectionne, Chasseur):  # Pose de piège
+                        competence = unite_selectionne.competences[1]
+                        competence.utiliser(unite_selectionne, None, self)
+                        has_acted = True
+
+                    elif event.key == pygame.K_b and isinstance(unite_selectionne, Chasseur):  # Brouillard de guerre
+                        competence = unite_selectionne.competences[2]
+                        competence.utiliser(unite_selectionne, None, self)
+                        has_acted = True
 
                     # Vérifier si l'unité doit être supprimée
                         self.check_et_supp_unit(unite_selectionne)  
@@ -385,7 +451,12 @@ class Game:
                     
                     has_acted = True
     # Alterner le joueur actif
-        self.debut_player = 2 if self.debut_player == 1 else 1
+        if has_acted:
+            self.selected_position = None
+            self.selected_unit_index = 0
+            self.debut_player = 2 if self.debut_player == 1 else 1
+            print(f"Tour de l'équipe {'Player' if self.debut_player == 1 else 'Enemy'}.")
+
 
     def fin_de_jeu(self):
     # Vérifier si une équipe a trouvé le trésor
@@ -565,6 +636,289 @@ class Game:
                 line_rendered = font_medium.render(line, True, (255, 255, 255))
                 self.screen.blit(line_rendered, (GRID_WIDTH + 20, y_offset))
                 y_offset += 30  # Espacement entre les lignes
+    def draw_accessible_areas_with_selection(self, unit, selected_position):
+        """
+        Dessine la zone accessible en transparence par-dessus la grille,
+        tout en mettant en évidence la position temporaire.
+        """
+        # Créer une surface transparente pour la superposition
+        overlay = pygame.Surface((self.grid_size * self.cell_size, self.grid_size * self.cell_size), pygame.SRCALPHA)
+
+        # Définir les couleurs avec transparence
+        accessible_color = (173, 216, 230, 100)  # Bleu clair transparent
+        selected_color = (0, 255, 0, 150)  # Vert plus opaque pour la position temporaire
+
+        # Déterminer la portée de déplacement de l'unité
+        x, y = unit.x, unit.y
+        max_range = 1 if isinstance(unit, (Archeologue, Chasseur)) else 2
+
+        for dx in range(-max_range, max_range + 1):
+            for dy in range(-max_range, max_range + 1):
+                nx, ny = x + dx, y + dy
+                if 0 <= nx < self.grid_size and 0 <= ny < self.grid_size and abs(dx) + abs(dy) <= max_range:
+                    # Dessiner la zone accessible en bleu clair transparent
+                    rect = (nx * self.cell_size, ny * self.cell_size, self.cell_size, self.cell_size)
+                    pygame.draw.rect(overlay, accessible_color, rect)
+
+                    # Si c'est la position temporaire, dessiner en vert transparent par-dessus
+                    if selected_position == (nx, ny):
+                        pygame.draw.rect(overlay, selected_color, rect)
+
+        # Dessiner l'overlay sur l'écran
+        self.screen.blit(overlay, (0, 0))
+    def afficher_effet_attaque(self, cible, degats):
+        """
+        Affiche un effet visuel pour une attaque classique.
+        """
+        font = pygame.font.Font(None, 36)
+        degats_text = font.render(f"-{degats}", True, (255, 0, 0))
+        text_rect = degats_text.get_rect(center=(cible.x * self.cell_size + self.cell_size // 2,
+                                                cible.y * self.cell_size + self.cell_size // 2))
+
+        flash_duration = 500
+        start_time = pygame.time.get_ticks()
+        while pygame.time.get_ticks() - start_time < flash_duration:
+            self.flip_display()
+            pygame.draw.rect(
+                self.screen,
+                (255, 0, 0),
+                (cible.x * self.cell_size, cible.y * self.cell_size, self.cell_size, self.cell_size),
+                5
+            )
+            self.screen.blit(degats_text, text_rect)
+            pygame.display.flip()
+
+    def afficher_effet_tir_distance(self, attaquant, cible):
+        """
+        Affiche un effet visuel simulant un tir à distance.
+        """
+        start_x = attaquant.x * self.cell_size + self.cell_size // 2
+        start_y = attaquant.y * self.cell_size + self.cell_size // 2
+        end_x = cible.x * self.cell_size + self.cell_size // 2
+        end_y = cible.y * self.cell_size + self.cell_size // 2
+
+        projectile_color = (255, 165, 0)  # Orange pour représenter le tir
+        projectile_radius = 5
+        steps = 20
+
+        for step in range(steps + 1):
+            t = step / steps
+            current_x = int(start_x + t * (end_x - start_x))
+            current_y = int(start_y + t * (end_y - start_y))
+
+            self.flip_display()
+            pygame.draw.circle(self.screen, projectile_color, (current_x, current_y), projectile_radius)
+            pygame.display.flip()
+            pygame.time.delay(50)
+
+        flash_duration = 300
+        start_time = pygame.time.get_ticks()
+        while pygame.time.get_ticks() - start_time < flash_duration:
+            pygame.draw.rect(
+                self.screen,
+                (255, 0, 0),
+                (cible.x * self.cell_size, cible.y * self.cell_size, self.cell_size, self.cell_size),
+                5
+            )
+            pygame.display.flip()
+
+    def afficher_effet_coup_rapide(self, attaquant, cible):
+        """
+        Affiche un effet visuel simulant un coup rapide.
+        """
+        start_x = attaquant.x * self.cell_size + self.cell_size // 2
+        start_y = attaquant.y * self.cell_size + self.cell_size // 2
+        cible_x = cible.x * self.cell_size + self.cell_size // 2
+        cible_y = cible.y * self.cell_size + self.cell_size // 2
+
+        effect_color = (0, 255, 0)  # Vert pour représenter la rapidité
+        flash_duration = 500  # Durée de l'effet en millisecondes
+
+        start_time = pygame.time.get_ticks()
+        while pygame.time.get_ticks() - start_time < flash_duration:
+            self.flip_display()
+            pygame.draw.line(
+                self.screen,
+                effect_color,
+                (start_x, start_y),
+                (cible_x, cible_y),
+                5  # Épaisseur de la ligne
+            )
+            pygame.display.flip()
+            pygame.time.delay(50)
+    def afficher_effet_revelation(self, utilisateur):
+        """
+        Affiche un effet visuel pour révéler les cases dans la zone accessible de l'Explorateur,
+        en mettant en évidence les cases contenant des pièges.
+        """
+        # Couleurs pour l'effet
+        reveal_color = (173, 216, 230, 100)  # Bleu clair transparent pour la zone accessible
+        piege_color = (255, 0, 0, 150)  # Rouge transparent pour les pièges détectés
+        flash_duration = 500  # Durée du flash en millisecondes
+
+        # Obtenir les positions accessibles
+        accessible_positions = get_accessible_positions(utilisateur, self.grid_size)
+
+        # Créer une surface transparente pour superposition
+        overlay = pygame.Surface((self.grid_size * self.cell_size, self.grid_size * self.cell_size), pygame.SRCALPHA)
+
+        # Dessiner les zones accessibles
+        for pos in accessible_positions:
+            x, y = pos
+            if self.grid[y][x].type == "piège":
+                pygame.draw.rect(
+                    overlay,
+                    piege_color,  # Rouge pour les pièges
+                    (x * self.cell_size, y * self.cell_size, self.cell_size, self.cell_size)
+                )
+            else:
+                pygame.draw.rect(
+                    overlay,
+                    reveal_color,  # Bleu clair pour les autres cases accessibles
+                    (x * self.cell_size, y * self.cell_size, self.cell_size, self.cell_size)
+                )
+
+        # Appliquer la surface de superposition
+        self.screen.blit(overlay, (0, 0))
+        pygame.display.flip()
+        pygame.time.delay(300)  # Pause pour que l'effet reste visible brièvement
+
+        # Ajouter un flash temporaire pour les cases détectées
+        start_time = pygame.time.get_ticks()
+        while pygame.time.get_ticks() - start_time < flash_duration:
+            for pos in accessible_positions:
+                x, y = pos
+                if self.grid[y][x].type == "piège":
+                    pygame.draw.rect(
+                        self.screen,
+                        (255, 255, 0),  # Jaune pour un flash temporaire sur les pièges
+                        (x * self.cell_size, y * self.cell_size, self.cell_size, self.cell_size),
+                        3  # Épaisseur du contour
+                    )
+            pygame.display.flip()
+            pygame.time.delay(50)  # Petite pause pour rendre l'effet fluide
+ 
+    def afficher_effet_pose_piege(self, position):
+        """
+        Affiche un effet visuel pour la pose d'un piège sur une case.
+        """
+        x, y = position
+        flash_duration = 500  # Durée de l'effet en millisecondes
+        start_time = pygame.time.get_ticks()
+
+        while pygame.time.get_ticks() - start_time < flash_duration:
+            pygame.draw.rect(
+                self.screen,
+                (255, 140, 0),  # Orange pour indiquer un piège
+                (x * self.cell_size, y * self.cell_size, self.cell_size, self.cell_size),
+                3  # Épaisseur du contour
+            )
+            pygame.display.flip()
+            pygame.time.delay(50)
+
+    
+    def afficher_effet_brouillard(self, utilisateur):
+        """
+        Affiche un effet visuel pour le brouillard de guerre autour de l'utilisateur.
+        """
+        overlay = pygame.Surface((self.grid_size * self.cell_size, self.grid_size * self.cell_size), pygame.SRCALPHA)
+        fog_color = (50, 50, 50, 150)  # Gris semi-transparent pour le brouillard
+
+        # Appliquer le brouillard uniquement sur la zone accessible
+        accessible_positions = get_accessible_positions(utilisateur, self.grid_size)
+
+        for x, y in accessible_positions:
+            pygame.draw.rect(
+                overlay,
+                fog_color,
+                (x * self.cell_size, y * self.cell_size, self.cell_size, self.cell_size)
+            )
+
+        self.screen.blit(overlay, (0, 0))
+        pygame.display.flip()
+        pygame.time.delay(500)  # Pause pour que l'effet reste visible brièvement
+    def afficher_effet_analyse(self, utilisateur):
+        """
+        Affiche un effet visuel captivant pour l'analyse de l'environnement dans la zone accessible,
+        avec un flash d'agrandissement pour les cases spéciales (indices et ressources).
+        """
+        # Obtenir les positions accessibles
+        accessible_positions = get_accessible_positions(utilisateur, self.grid_size)
+        
+        # Couleurs lumineuses pour les cases spéciales
+        colors = {
+            "indice": (0, 255, 255),  # Cyan lumineux pour les indices
+            "ressource": (0, 255, 0),  # Vert clair lumineux pour les ressources
+            "autre": (100, 100, 100)  # Gris pour les autres cases accessibles
+        }
+
+        # Nombre d'étapes pour l'animation
+        flash_steps = 10
+        max_radius = self.cell_size // 2  # Taille maximum pour le flash
+
+        # Pour chaque étape de l'animation
+        for step in range(flash_steps):
+            self.flip_display()  # Redessiner l'écran sans effacer l'effet
+            for x, y in accessible_positions:
+                case_type = self.grid[y][x].type
+                color = colors.get(case_type, colors["autre"])
+                
+                # Calculer le rayon du cercle (agrandissement progressif)
+                radius = int((step + 1) / flash_steps * max_radius)
+                center = (x * self.cell_size + self.cell_size // 2, y * self.cell_size + self.cell_size // 2)
+
+                if case_type in colors:  # Mettre en évidence les cases spéciales
+                    pygame.draw.circle(
+                        self.screen,
+                        color,
+                        center,
+                        radius
+                    )
+
+            pygame.display.flip()  # Mettre à jour l'écran
+            pygame.time.delay(50)  # Pause entre les étapes
+
+        # Dernière étape : afficher les zones révélées en permanence
+        overlay = pygame.Surface((self.grid_size * self.cell_size, self.grid_size * self.cell_size), pygame.SRCALPHA)
+        for x, y in accessible_positions:
+            case_type = self.grid[y][x].type
+            color = (*colors.get(case_type, colors["autre"]), 100)  # Ajouter transparence
+            pygame.draw.rect(
+                overlay,
+                color,
+                (x * self.cell_size, y * self.cell_size, self.cell_size, self.cell_size)
+            )
+
+        self.screen.blit(overlay, (0, 0))
+        pygame.display.flip()
+        pygame.time.delay(500)  # Pause finale pour que l'effet reste visible
+
+
+
+    
+    def afficher_effet_decrypter_indice(self, utilisateur):
+        """
+        Affiche un effet visuel pour le décryptage d'un indice.
+        """
+        # Définir les couleurs et durées pour l'effet visuel
+        highlight_color = (0, 255, 0)  # Vert pour indiquer le succès du décryptage
+        flash_duration = 500  # Durée en millisecondes
+
+        # Obtenir la position de l'utilisateur
+        x, y = utilisateur.x, utilisateur.y
+
+        start_time = pygame.time.get_ticks()
+        while pygame.time.get_ticks() - start_time < flash_duration:
+            pygame.draw.rect(
+                self.screen,
+                highlight_color,
+                (x * self.cell_size, y * self.cell_size, self.cell_size, self.cell_size),
+                3  # Épaisseur de la bordure
+            )
+            pygame.display.flip()
+            pygame.time.delay(50)  # Petite pause pour rendre l'effet visible
+
+
 
     def draw_door_locked_effect(self, x, y):
         rect_x = x * self.cell_size
@@ -611,15 +965,16 @@ class Game:
         pygame.display.flip()
         pygame.time.delay(50)  # Pause entre chaque étape
 
-
-    
-    
-
-
-
     def flip_display(self):
         self.screen.fill((0, 0, 0))
         self.draw_grid()
+        
+        # Dessiner les zones accessibles pour l'unité active
+        active_units = self.player_units if self.debut_player == 1 else self.enemy_units
+        self.draw_accessible_areas_with_selection(
+            active_units[self.selected_unit_index],
+            self.selected_position
+        )
         self.draw_units()
         self.draw_ui()
         pygame.display.flip()
