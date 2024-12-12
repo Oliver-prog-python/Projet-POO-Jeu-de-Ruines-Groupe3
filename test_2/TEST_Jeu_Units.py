@@ -97,6 +97,8 @@ class Unit:
         self.defense = 10
         self.attack_power = 20
         self.team=team
+        self.is_active=True #Par défaut, l'unité est jouable 
+        self.has_key=False # Par défaut l'unité n'a pas de clé 
         
     def draw(self, screen, cell_size):
         """Dessine l'unité sur l'écran."""
@@ -136,11 +138,15 @@ class Unit:
 # Définition de la classe pour les personnages :
 #================================================
 class Explorateur(Unit):
-    def __init__(self, x, y, team="player"):
-        super().__init__(x, y, "images/aventurier.png", "Explorateur", team)
+    def __init__(self, x, y, team):
+        super().__init__(x, y,"images/explorateur.png" , team,"Explorateur")
         self.attack_power = 10
         self.defense = 10
         self.speed = 5
+        self.name="Explorateur"
+        # Charger l'image et redimensionner
+        self.image = pygame.image.load("images/explorateur.png")  # Charger l'image
+        self.image = pygame.transform.scale(self.image, (85, 70))  # redimenssionner
 
         # Ajouter les compétences
         self.competences = [
@@ -191,11 +197,14 @@ class Explorateur(Unit):
         game.afficher_effet_detection_piege(utilisateur)
 
 class Archeologue(Unit):
-    def __init__(self, x, y, team="player"):
-        super().__init__(x, y, "images/archeologue.png", "Archéologue", team)
+    def __init__(self, x, y, team):
+        super().__init__(x, y, "images/archeologue.png",team, "Archéologue")
         self.attack_power = 15
         self.defense = 15
         self.speed = 2
+        self.name="Archeologue"
+        self.enigme_non_resolue=False #énigme en attente de réponse       
+
 
         # Ajouter les compétences
         self.competences = [
@@ -249,8 +258,10 @@ class Archeologue(Unit):
         game.afficher_effet_analyse(utilisateur)
 
 class Chasseur(Unit):
-    def __init__(self, x, y, team="player"):
-        super().__init__(x, y, "images/chasseur.png", "Chasseur", team)
+    def __init__(self, x, y, team):
+        super().__init__(x, y, "images/chasseur_2.png", team,"Chasseur")
+        self.image = pygame.transform.scale(self.image, (100, 75))  # Redimensionner à 50x50 pixels
+        self.name="Chasseur"    
         self.attack_power = 17
         self.defense = 15
         self.speed = 2
