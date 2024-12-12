@@ -275,7 +275,7 @@ class Game:
     
     def treasure_animation(self, x, y):
         # Charger la police pour le texte
-        font = pygame.font.Font("police.ttf", 72)  # Police pixel art avec taille 72
+        font = pygame.font.Font("images/police.ttf", 72)  # Police pixel art avec taille 72
 
 
         for i in range(30):  # Répéter l'effet 
