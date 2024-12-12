@@ -13,72 +13,119 @@ class Case:
     def __init__(self, type_case="normale"):
         self.type = type_case
         self.hidden = False  # Les cases commencent révélées
-    
-    def effet_case(self, unit,game):
+
+    def effet_case(self, unit, game):
         if self.type == "trésor":
             game.treasure_animation(unit.x, unit.y)  # Lancer l'animation
             return f"{unit.name} a trouvé le trésor ! Victoire !"
+
         if self.type == "piège":
-            if isinstance(unit, Chasseur): # si l'unité est un chasseur 
+            if isinstance(unit, Chasseur):  # si l'unité est un chasseur 
                 return f"{unit.name} détecte et désamorce un piège."
-            else: # autres unités
+            else:  # autres unités
                 game.explosion_animation(unit.x, unit.y)
                 unit.health -= 20
                 unit.health = max(0, unit.health)  # Empêcher les PV négatifs
                 game.check_et_supp_unit(unit)  # Vérifier si l'unité doit être supprimée
-                return f"{unit.name} marche sur un piège et perd 20 PV."        
+                return f"{unit.name} marche sur un piège et perd 20 PV."
+
         elif self.type == "ressource":
-            unit.health=min(100,unit.health +10) # PV max à 100
+            unit.health = min(100, unit.health + 10)  # PV max à 100
             return f"{unit.name} récupère une ressource et gagne 10 PV."
 
         elif self.type == "indice":
-            if isinstance(unit,Archeologue):
-                    # Défi pour le joueur controlant un archéologue
-                    choix_enigme = game.genere_enigme()
-                    print(f"Énigme : {choix_enigme['question']}") 
-                    try:
-                        player_reponse = (input("Votre réponse : "))
-                        if str(player_reponse).strip == str(choix_enigme["réponse"]):
-                            self.type = "normale"  # L'indice est résolu
-                            unit.enigme_non_resolue=False #libère l'archéologue
-                            return f"{unit.name} a résolu l'enigme avec succès !"
-                        else: 
-                            unit.health-=5
-                            unit.health = max(0, unit.health)  # Empêcher les PV négatifs
-                            unit.enigme_non_resolue=True # Bloque l'archéologue
-                            if unit.health == 0:
-                                game.check_et_supp_unit(unit)  # Supprimer si PV = 0
-                                return f"{unit.name} a échoué et est éliminé de la carte."
-                        return f"{unit.name} a échoué à résoudre l'indice et perd 10 PV."
-                            
-                    except ValueError:
+            if isinstance(unit, Archeologue):
+                # Défi pour le joueur contrôlant un archéologue
+                choix_enigme = game.genere_enigme()
+                print(f"Énigme : {choix_enigme['question']}")
+                try:
+                    player_reponse = input("Votre réponse : ")
+                    if str(player_reponse).strip() == str(choix_enigme["réponse"]):
+                        self.type = "normale"  # L'indice est résolu
+                        unit.enigme_non_resolue = False  # Libère l'archéologue
+                        return f"{unit.name} a résolu l'énigme avec succès !"
+                    else:
                         unit.health -= 5
-                        unit.health = max(0, unit.health)
-                        unit.enigme_non_resolue=True
+                        unit.health = max(0, unit.health)  # Empêcher les PV négatifs
+                        unit.enigme_non_resolue = True  # Bloque l'archéologue
                         if unit.health == 0:
-                            game.check_et_supp_unit(unit)
-                            return f"{unit.name} n'a pas répondu correctement et est éliminé."
-                        return f"{unit.name} n'a pas répondu correctement et perd 10 PV."
-            else: #autres unites
+                            game.check_et_supp_unit(unit)  # Supprimer si PV = 0
+                            return f"{unit.name} a échoué et est éliminé de la carte."
+                        return f"{unit.name} a échoué à résoudre l'indice et perd 5 PV."
+
+                except ValueError:
+                    unit.health -= 5
+                    unit.health = max(0, unit.health)
+                    unit.enigme_non_resolue = True
+                    if unit.health == 0:
+                        game.check_et_supp_unit(unit)
+                        return f"{unit.name} n'a pas répondu correctement et est éliminé."
+                    return f"{unit.name} n'a pas répondu correctement et perd 5 PV."
+            else:  # autres unités
                 unit.health -= 10
                 unit.health = max(0, unit.health)
                 if unit.health == 0:
                     game.check_et_supp_unit(unit)
                     return f"{unit.name} est éliminé sur une case indice."
                 return f"{unit.name} ne peut pas résoudre l'indice et perd 10 PV."
+            
+        elif self.type == "clé":
+            if unit.has_key:
+                return f"{unit.name} possède déjà une clé."
+            else:
+                unit.has_key = True  # L'unité récupère la clé
+                self.type = "normale"  # La case redevient normale
+                return f"{unit.name} a récupéré une clé magique !"
+        elif self.type == "porte":    
+            if unit.has_key:
+            # Trouver les coordonnées de la case dans la grille
+                for y, row in enumerate(game.grid):
+                    for x, case in enumerate(row):
+                        if case is self:  # Identifier la case actuelle
+                            if (x, y) == game.porte_correcte:  # Vérifier si c'est la porte correcte
+                                unit.has_key = False  # Consommer la clé pour ouvrir la porte
+                                self.type = "normale"  # La porte est maintenant ouverte
+                                return f"{unit.name} utilise une clé pour ouvrir la porte correcte !"
+                            else:
+                                unit.x=x
+                                unit.y=y
+                                game.draw_door_locked_effect(x, y)
+                                #bloquer l'unité sur cette case
+                                return f"{unit.name} essaie d'ouvrir une porte, mais ce n'est pas la bonne."
+                else:
+                    # Bloquer l'unité sur cette case si elle n'a pas de clé
+                    for y, row in enumerate(game.grid):
+                        for x, case in enumerate(row):
+                            if case is self:
+                                unit.x=x
+                                unit.y=y
+                                game.draw_door_locked_effect(x, y)
+                                return f"{unit.name} a besoin d'une clé pour ouvrir cette porte."
         elif self.type == "ruines":
             if isinstance(unit, Explorateur):
                 return f"{unit.name} explore efficacement les ruines."
-        else:
-            return f"{unit.name} explore les ruines sans compétences particulières."
-      
+            else:
+                return f"{unit.name} explore les ruines sans compétences particulières."
+        return f"{unit.name} explore les ruines."
+
+
+    
+    
 class Game:
     def __init__(self, screen):
         self.screen = screen
         self.grid_size = 10
         self.cell_size = GRID_WIDTH // self.grid_size
+        self.grid=self.initialize_grid()
+        self.place_tresor()
+        self.place_portes()
+        self.place_clef()
+        self.player_units = self.creation_random_team("player")
+        self.enemy_units = self.creation_random_team("enemy")
+        self.initialize_teams()
         self.choix_enigme = None
-        self.grid = self.initialize_grid()
+        
+    
 
          # Charger les images des cases
         self.tile_images = {
@@ -86,6 +133,9 @@ class Game:
             "piège": pygame.image.load("images/case_piege2.png"),
             "ressource": pygame.image.load("images/case_ressource2.png"),
             "indice": pygame.image.load("images/case_indice2.png"),
+            "porte": pygame.image.load("images/case_porte.png"),
+            "clé": pygame.image.load("images/case_clef.png"),
+            
         }
          
 
@@ -96,13 +146,6 @@ class Game:
         self.tile_images["trésor"] = pygame.image.load("images/case_tresor2.png")
         self.tile_images["trésor"] = pygame.transform.scale(self.tile_images["trésor"], (self.cell_size, self.cell_size))
         
-        # Placer le trésor
-        self.place_tresor()
-
-        # Initialiser les équipes
-        self.player_units = self.creation_random_team("player")
-        self.enemy_units = self.creation_random_team("enemy")
-
         self.debut_player=1 #commencer avec le joueur 1
         self.selected_unit_index = 0
         self.last_action_message = "Aucune action effectuée."
@@ -112,11 +155,11 @@ class Game:
         """
         Crée une grille avec des cases de différents types en fonction de proportions prédéfinies.
         """
-        grid = [[Case() for _ in range(self.grid_size)] for _ in range(self.grid_size)]
+        grid = [[Case("normale") for _ in range(self.grid_size)] for _ in range(self.grid_size)]
     
     # Définir les proportions
         nombre_pieges = int(self.grid_size * self.grid_size * 0.2)  # 20% de pièges
-        nombre_ressources = int(self.grid_size * self.grid_size * 0.2)  # 10% de ressources
+        nombre_ressources = int(self.grid_size * self.grid_size * 0.2)  # 20% de ressources
         nombre_indices= int(self.grid_size * self.grid_size * 0.1)  # 10% d'indices
 
     # Placer des pièges
@@ -136,17 +179,79 @@ class Game:
 
         return grid
     
-    def place_tresor(self):
-        """Place un trésor sur une case aléatoire de la grille."""
+    def place_tresor(self): # place trésor dans la zone centrale de la grille
+        centre_marge = self.grid_size // 4  # Définir une marge pour centraliser le trésor
+        center_start = centre_marge
+        center_end = self.grid_size - centre_marge
+
         while True:
-            x = random.randint(1, self.grid_size - 2)  # Ne pas inclure 0 et grid_size - 1
-            y = random.randint(1, self.grid_size - 2)  # Ne pas inclure 0 et grid_size - 1
+            x = random.randint(center_start,center_end - 1) 
+            y = random.randint(center_start,center_end-1) 
             
-            if self.grid[y][x].type == "normale":  # Assurez-vous que la case est normale
+            if self.grid[y][x].type == "normale":  # VERIFIE QUE la case est normale
                 self.grid[y][x].type = "trésor"
+                self.tresor_position = (x, y)  # Enregistrer la position du trésor
                 print(f"Le trésor a été placé sur la case ({x}, {y})")
                 break
+    
+    def place_portes(self):
+        if not hasattr(self, 'tresor_position'):
+            print("Erreur : Le trésor doit être placé avant les portes.")
+            return
 
+        tx, ty = self.tresor_position
+        portes_places=[]
+        for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            px, py = tx + dx, ty + dy
+            if 0 <= px < self.grid_size and 0 <= py < self.grid_size:
+                self.grid[py][px].type = "porte"
+                portes_places.append((px,py))
+                print(f"Porte placée sur la case ({px}, {py})")
+        # Définir une des portes comme correcte
+        if portes_places:
+            self.porte_correcte = random.choice(portes_places)
+            print(f"La porte correcte est sur la case {self.porte_correcte}")
+
+        else: 
+            print("Erreur:Aucune porte na été placée")
+        # Vérifier qu'il y a bien 4 portes placées
+        if len(portes_places) < 4:
+            print(f"Erreur : Seulement {portes_places} portes ont été placées autour du trésor.")
+
+    def place_clef(self):
+        while True:
+            x = random.randint(0, self.grid_size - 1)
+            y = random.randint(0, self.grid_size - 1)
+        # S'assure que la clé n'est pas trop proche du trésor
+            tx, ty = self.tresor_position
+            if abs(x - tx) + abs(y - ty) > self.grid_size // 2:  # Distance suffisante
+                self.grid[y][x].type = "clé"
+                self.clef_position = (x, y)
+                break
+
+    
+    def initialize_teams(self):
+    # Triangle pour l'équipe 1 (en haut à gauche)
+        team_1_positions = [(0, 0), (0, 1), (1, 0)]
+
+    # Triangle pour l'équipe 2 (en bas à droite)
+        team_2_positions = [(self.grid_size - 1, self.grid_size - 1),
+                        (self.grid_size - 1, self.grid_size - 2),
+                        (self.grid_size - 2, self.grid_size - 1)]
+
+    # Placer les unités de l'équipe 1
+        for i, unit in enumerate(self.player_units):
+            if i < len(team_1_positions):  # S'assurer qu'on ne dépasse pas la taille du triangle
+                x, y = team_1_positions[i]
+                unit.x, unit.y = x, y
+
+    # Placer les unités de l'équipe 2
+        for i, unit in enumerate(self.enemy_units):
+            if i < len(team_2_positions):  # S'assurer qu'on ne dépasse pas la taille du triangle
+                x, y = team_2_positions[i]
+                unit.x, unit.y = x, y
+
+    
     def treasure_animation(self, x, y):
         # Charger la police pour le texte
         font = pygame.font.Font("police.ttf", 72)  # Police pixel art avec taille 72
@@ -193,6 +298,7 @@ class Game:
             for _ in range(3)
         ]
     
+    
 
     def genere_enigme(self): #génère une énigme 
         enigmes = [
@@ -221,7 +327,6 @@ class Game:
         unite_selectionne = actuelle_units[self.selected_unit_index]
         has_acted = False
         
-
         while not has_acted:
             self.flip_display()
             # Bloquer les déplacements si une énigme est en attente
@@ -252,29 +357,33 @@ class Game:
 
                     if dx != 0 or dy != 0:
                     # Mise à jour de la position
-                        nouveau_x = int(max(0, min(self.grid_size - 1, unite_selectionne.x + dx)))
-                        nouveau_y = int(max(0, min(self.grid_size - 1, unite_selectionne.y + dy)))
+                        nouveau_x = (max(0, min(self.grid_size - 1, unite_selectionne.x +dx )))
+                        nouveau_y = (max(0, min(self.grid_size - 1, unite_selectionne.y+dy)))
                     
                     # mise à jour des coordonnées de l'unité 
-                    unite_selectionne.x, unite_selectionne.y = nouveau_x, nouveau_y
-
-                    self.flip_display()
+                        unite_selectionne.x=nouveau_x
+                        unite_selectionne.y=nouveau_y
+                        self.flip_display()
+                    
+                    # Bloquer le déplacement si l'unité est bloquée sur une porte
+                    #if unite_selectionne.x != nouveau_x or unite_selectionne.y != nouveau_y:
+                        # L'unité est restée sur la même case, le déplacement est annulé
+                        #continue
 
                     # Appliquer l'effet de la case après le déplacement
-                    case = self.grid[nouveau_y][nouveau_x]
-                    self.last_action_message = case.effet_case(unite_selectionne,self)
-                    print(self.last_action_message)
+                        case = self.grid[nouveau_y][nouveau_x]
+                        self.last_action_message = case.effet_case(unite_selectionne,self)
+                        print(self.last_action_message)
 
                     # Vérifier si l'unité doit être supprimée
-                    self.check_et_supp_unit(unite_selectionne)  
+                        self.check_et_supp_unit(unite_selectionne)  
 
                     # Vérifier si le jeu est terminé après l'action
-                    if self.fin_de_jeu():
-                        return  # Arrêter le tour si le jeu est terminé
+                        if self.fin_de_jeu():
+                            return  # Arrêter le tour si le jeu est terminé
                     
                     
                     has_acted = True
-
     # Alterner le joueur actif
         self.debut_player = 2 if self.debut_player == 1 else 1
 
@@ -456,6 +565,24 @@ class Game:
                 line_rendered = font_medium.render(line, True, (255, 255, 255))
                 self.screen.blit(line_rendered, (GRID_WIDTH + 20, y_offset))
                 y_offset += 30  # Espacement entre les lignes
+
+    def draw_door_locked_effect(self, x, y):
+        rect_x = x * self.cell_size
+        rect_y = y * self.cell_size
+        rect_size = self.cell_size
+
+    # Dessiner un rectangle rouge pour indiquer l'erreur
+        pygame.draw.rect(
+            self.screen,
+            (255, 0, 0),  # Rouge vif
+            (rect_x, rect_y, rect_size, rect_size),
+            5  # Épaisseur de la bordure
+    )
+        
+    # Mettre à jour l'écran pour afficher l'effet
+        pygame.display.flip()
+        pygame.time.delay(500)  # Afficher l'effet pendant 500 ms
+
 
     
     def explosion_animation(self, x, y):
