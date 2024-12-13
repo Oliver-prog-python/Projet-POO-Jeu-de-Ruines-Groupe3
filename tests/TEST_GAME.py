@@ -154,8 +154,8 @@ class Case:
                 return f"{unit.name} explore efficacement les ruines."
 
         else:
-            game.add_message(f"{unit.name} avance sur une case normale.")
-            return f"{unit.name} avance sur une case normale."
+            game.add_message(f"{unit.name} avance sur une case ruine.")
+            return f"{unit.name} avance sur une ruine."
 
 
 class Game:
