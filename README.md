@@ -16,12 +16,12 @@ Les **Mystérieuses Cités d'Or** est un jeu stratégique en Python où des unit
    - `poser_piege()` : Placement de pièges sur la grille.
    - `decrypter_indice()` : Decrypter des énigmes.
 - **Effets des cases** :
-   - **Pièges** : Infligent des dégâts aux unités.
-   - **Trésors** : Objectif final pour gagner la partie.
-   - **Indices** : Déclenchent des énigmes à résoudre.
-   - **Ressources**: Récuperer des points de vie.
-   - **Clé magique** : Récuperer la clé magique afin d'ouvrir une des portes qui mène au trésor.
-   - **Portes**: Protègent le trésor, une seule s'ouvre.
+   - **Pièges** : Infligent des dégâts aux unités. <img src="images/case_piege2.png" alt="Piege" width="50">
+   - **Trésor** : Objectif final pour gagner la partie.  <img src="images/case_tresor2.png" alt="Trésor" width="50">
+   - **Indices** : Déclenchent des énigmes à résoudre.   <img src="images/case_indice2.png" alt="Indices " width="50">
+   - **Ressources**: Récuperer des points de vie.  <img src="images/case_ressource2.png" alt="Ressources" width="50">
+   - **Clé magique** : Récuperer la clé magique afin d'ouvrir une des portes qui mène au trésor.  <img src="images/case_clef.png" alt="clé magique" width="50">
+   - **Portes**: Protègent le trésor, une seule s'ouvre.  <img src="images/case_porte.png" alt="Porte" width="50">
 
 -**Comprendre les fonctionnalitées**:
 Afin de comprendre les fonctionnalités du jeu, la touche "C" permet de dérouler le menu. 
