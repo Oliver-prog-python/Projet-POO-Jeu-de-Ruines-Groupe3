@@ -22,6 +22,7 @@ Les **Mystérieuses Cités d'Or** est un jeu stratégique en Python où des unit
    - **Ressources**: Récuperer des points de vie.  <img src="images/case_ressource2.png" alt="Ressources" width="50">
    - **Clé magique** : Récuperer la clé magique afin d'ouvrir une des portes qui mène au trésor.  <img src="images/case_clef.png" alt="clé magique" width="50">
    - **Portes**: Protègent le trésor, une seule s'ouvre.  <img src="images/case_porte.png" alt="Porte" width="50">
+   - **Ruines** : Sans effet. <img src="images/case_ruine2.png" alt="Ruine" width="50">
 
 -**Comprendre les fonctionnalitées**:
 Afin de comprendre les fonctionnalités du jeu, la touche "C" permet de dérouler le menu. 
