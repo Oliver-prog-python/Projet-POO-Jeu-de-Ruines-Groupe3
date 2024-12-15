@@ -24,8 +24,8 @@ Les **Mystérieuses Cités d'Or** est un jeu stratégique en Python où des unit
    - **Portes**: Protègent le trésor, une seule s'ouvre.  <img src="images/case_porte.png" alt="Porte" width="50">
    - **Ruines** : Sans effet. <img src="images/case_ruine2.png" alt="Ruine" width="50">
 
--**Comprendre les fonctionnalitées**:
-Afin de comprendre les fonctionnalités du jeu, la touche "C" permet de dérouler le menu. 
+## Comprendre les fonctionnalitées
+Afin de comprendre les fonctionnalités du jeu, la touche "C" permet de dérouler le menu. NB: certaines compétences relèvent des cases (ex: seul archéologue peut tenter de résoudre énigme et ne pas perdre de points si il s'y trouve, les autres unités perdent sytématiquement des PV ou encore quand l'explorateur active la touche "E" il marque en rouge sur la map les pièges aux alentours).  
 
 ---
 
