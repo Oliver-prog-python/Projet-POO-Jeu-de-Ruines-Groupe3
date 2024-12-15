@@ -1,5 +1,5 @@
 # Les Mystérieuses Cités d'Or - Exploration et Stratégie sur Grille 
-![Map_jeu](main/images/map_maya.png)
+![Map_jeu]([main/images/map_maya.png](https://raw.githubusercontent.com/Oliver-prog-python/Projet-POO-Jeu-de-Ruines/main/main/images/map_maya.png))
 
 ## Description
 
