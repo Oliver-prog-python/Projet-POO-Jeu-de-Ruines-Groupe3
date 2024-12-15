@@ -363,8 +363,8 @@ class Chasseur(Unit):
                 recul_y = adversaire.y + (2 if dy > 0 else -2)
 
             # Si le recul sort des limites, ajuster pour rester dans la grille
-            recul_x = max(0, min(game.grid_size - 1, recul_x))
-            recul_y = max(0, min(game.grid_size - 1, recul_y))
+            recul_x = max(0, min(GRID_COLUMNS - 1, recul_x))
+            recul_y = max(0, min(GRID_ROWS - 1, recul_y))
 
             # Appliquer le recul si la case cible est libre ou forcer le déplacement
             adversaire.x, adversaire.y = recul_x, recul_y
