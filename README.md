@@ -1,5 +1,5 @@
 # Les Mystérieuses Cités d'Or - Exploration et Stratégie sur Grille 
-![Map_jeu](main/images/map_maya.png)
+![Map_jeu](/main/images/map_maya.png)
 
 ## Description
 
@@ -8,9 +8,9 @@ Les **Mystérieuses Cités d'Or** est un jeu stratégique en Python où des unit
 ## Fonctionnalités
 - **Exploration de la grille** : Explorer les ruines et évitez les pièges et l'équipe ennemie.
 - **Unités spécialisées** :
-   - **Explorateur**  <img src="main/images/explorateur.png" alt="Explorateur" width="50"> : Détecte les pièges et explore des zones cachées.
-   - **Archéologue** <img src="main/images/archeologue.png" alt="Archeologue" width="50">: Résout des énigmes pour progresser.
-   - **Chasseur** <img src="images/chasseur_2.png" alt="Chasseur" width="50">: Pose des pièges et utilise le brouillard pour reculer ses ennemis.
+   - **Explorateur**  <img src="/main/images/explorateur.png" alt="Explorateur" width="50"> : Détecte les pièges et explore des zones cachées.
+   - **Archéologue** <img src="/main/images/archeologue.png" alt="Archeologue" width="50">: Résout des énigmes pour progresser.
+   - **Chasseur** <img src="/main/images/chasseur_2.png" alt="Chasseur" width="50">: Pose des pièges et utilise le brouillard pour reculer ses ennemis.
 - **Système de compétences** : Chaque unité utilise des actions spécifiques pour interagir avec la grille, voici quelques unes :
    - `reveler_zone()` : Révélation des cases voisines.
    - `poser_piege()` : Placement de pièges sur la grille.
