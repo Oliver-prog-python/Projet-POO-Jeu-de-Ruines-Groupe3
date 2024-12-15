@@ -49,4 +49,5 @@ Pour exécuter ce projet, assurez-vous d'avoir :
 
 1. **Clonez ce dépôt** :
    ```bash
-   git clone https://github.com/votre-utilisateur/nom-du-repo.git
+   git clone https://github.com/<votre-nom-d'utilisateur>/<Projet-POO-Jeu-de-Ruines>.git
+
