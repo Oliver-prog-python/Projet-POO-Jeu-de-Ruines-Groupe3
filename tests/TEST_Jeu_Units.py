@@ -1,10 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Fri Nov 29 17:31:07 2024
-
-@author: olivermaamary
-"""
 import pygame
 
 pygame.init()
@@ -65,12 +58,13 @@ class Competence:
     def utiliser(self, utilisateur, cible, game): 
         
         accessible_positions = get_accessible_positions(utilisateur, GRID_COLUMNS, GRID_ROWS)
-
-        # Si aucune cible n'est spécifiée, appliquer un effet global (par exemple pour "Révéler zone" ou "Brouillard de guerre")
+        
+        
+        #Si aucune cible n'est spécifiée, appliquer un effet global (par exemple pour "Révéler zone" ou "Brouillard de guerre")
         if cible is None:
-            if self.effet:  # Vérifie si la compétence a un effet global
-                self.effet(utilisateur, game)  # Appel à l'effet
-            return
+           if self.effet:  # Vérifie si la compétence a un effet global
+               self.effet(utilisateur, game)  # Appel à l'effet
+           return
 
         # Vérifier que la cible est dans la portée
         if (cible.x, cible.y) not in accessible_positions:
@@ -148,15 +142,18 @@ class Unit:
             cible.mourir(game)
             print(f"{cible.name} a été vaincu !")
     
+    
     def get_cibles_accessibles(self, other_units, grid_columns, grid_rows, offset_x=0, offset_y=0):
         
-        # Obtenir les positions accessibles en fonction des dimensions et des offsets
+        # Obtenez les positions accessibles en fonction de la portée de l'unité
         accessible_positions = get_accessible_positions(self, grid_columns, grid_rows)
 
-        # Filtrer les unités ennemies basées sur les positions accessibles
+        # Filtrer les cibles ennemies situées dans les positions accessibles
         cibles = [
             unit for unit in other_units
-            if (unit.x, unit.y) in accessible_positions and unit.team != self.team
+            if (unit.x, unit.y) in accessible_positions
+            and unit.is_active  # La cible doit être active
+            and unit.team != self.team  # La cible doit être une ennemie
         ]
 
         return cibles
@@ -177,7 +174,7 @@ class Unit:
     
 class Explorateur(Unit):
     def __init__(self, x, y, team):
-        super().__init__(x, y,"images/explorateur.png" , team,"Explorateur")
+        super().__init__(x, y,"images/explorateur.png" , "explorateur" ,team)
         self.attack_power = 10
         self.defense = 10
         self.speed = 5
@@ -231,7 +228,7 @@ class Explorateur(Unit):
 
 class Archeologue(Unit):
     def __init__(self, x, y, team):
-        super().__init__(x, y, "images/archeologue.png",team, "Archéologue")
+        super().__init__(x, y, "images/archeologue.png","Archéologue", team)
         self.attack_power = 15
         self.defense = 15
         self.speed = 2
@@ -287,7 +284,7 @@ class Archeologue(Unit):
 
 class Chasseur(Unit):
     def __init__(self, x, y, team):
-        super().__init__(x, y, "images/chasseur_2.png", team,"Chasseur")
+        super().__init__(x, y, "images/chasseur_2.png", "Chasseur", team)
         self.attack_power = 17
         self.defense = 15
         self.speed = 2
@@ -348,11 +345,7 @@ class Chasseur(Unit):
 
 
     def brouillard_de_guerre(self, utilisateur, game):
-        """
-        Applique un brouillard de guerre sur l'équipe adverse,
-        forçant chaque unité adverse à reculer de deux cases dans une direction
-        (haut, bas, gauche ou droite) en fonction de leur position initiale.
-        """
+    
         # Identifier l'équipe adverse
         equipe_adverse = game.enemy_units if utilisateur.team == "player" else game.player_units
         nouvelles_positions = []  # Liste pour stocker les nouvelles positions des ennemis
@@ -375,13 +368,16 @@ class Chasseur(Unit):
 
             # Appliquer le recul si la case cible est libre ou forcer le déplacement
             adversaire.x, adversaire.y = recul_x, recul_y
+            game.add_message(f"{adversaire.name} a reculé à la position ({recul_x}, {recul_y}).")
             print(f"{adversaire.name} a reculé à la position ({recul_x}, {recul_y}).")
 
         # Ajouter un effet visuel pour le brouillard
         game.afficher_effet_brouillard(utilisateur)
 
         if nouvelles_positions:
+            game.add_message(f"{utilisateur.name} a forcé les unités adverses à reculer : {nouvelles_positions}")
             print(f"{utilisateur.name} a forcé les unités adverses à reculer : {nouvelles_positions}")
 
         # Retourner les nouvelles positions des unités affectées
         return nouvelles_positions
+    
