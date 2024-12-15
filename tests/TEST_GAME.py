@@ -86,6 +86,7 @@ class Case:
             return f"{unit.name} récupère une ressource et gagne 10 PV."
 
         elif self.type == "indice":
+            game.add_message(f"{unit.name} arrive sur une case indice.")  
             if isinstance(unit, Archeologue):
                 if not game.current_riddle:
                     choix_enigme = game.genere_enigme()
@@ -102,6 +103,7 @@ class Case:
                 if unit.health == 0:
                     unit.mourir(game)
                     return f"{unit.name} est éliminé sur une case indice."
+                game.add_message(f"{unit.name} ne peut pas résoudre l'indice et perd 10 PV.")
                 return f"{unit.name} ne peut pas résoudre l'indice et perd 10 PV."
         
         elif self.type == "clé":
@@ -154,8 +156,8 @@ class Case:
                 return f"{unit.name} explore efficacement les ruines."
 
         else:
-            game.add_message(f"{unit.name} avance sur une case ruine.")
-            return f"{unit.name} avance sur une ruine."
+            game.add_message(f"{unit.name} avance sur une case normale.")
+            return f"{unit.name} avance sur une case normale."
 
 
 class Game:
@@ -163,6 +165,10 @@ class Game:
         
         self.screen = screen
         self.running = True
+        
+        # Initialiser les listes des équipes AVANT de les utiliser
+        self.player_units = []
+        self.enemy_units = []
         
         # Initialiser la grille avant d'appeler les autres méthodes
         self.grid = self.initialize_grid()
@@ -176,18 +182,25 @@ class Game:
         # Ajouter cette ligne pour suivre la position sélectionnée
         self.selected_position = None  # Position sélectionnée (initialement None)
         
+        
+        
+        self.startup_message_displayed = True  # Indique que le message est actif
+        self.startup_timer = pygame.time.get_ticks()  # Temps de départ pour le timer
+        
         self.console_messages = []  # Liste des messages pour le popup console
         self.font = pygame.font.Font(None, 24)  # Police pour le texte de la console
         self.show_console_popup = True  # Le popup console est visible par défaut
+        
+        
+        
+        
+        
         self.show_commands = False  # pour masquer le popup par defaut 
         
         # Popup pour afficher le tour de l'équipe a jouer :
         self.turn_popup_message = None  # Message à afficher pour le changement de tour
         self.turn_popup_start_time = None  # Temps où le popup a commencé à être affiché
-        
-        # Initialiser les équipes
-        self.player_units = self.create_random_team("player")
-        self.enemy_units = self.create_random_team("enemy")
+    
         self.initialize_teams()
         
         self.selected_unit_index = 0
@@ -237,17 +250,17 @@ class Game:
         enigmes = [
             # Carré magique
             {
-                "question": "Carré magique :\n2 7 6\n9 _ 1\n4 3 8\nQuel est le chiffre manquant ?",
+                "question": "Question : Soit le Carré magique :\n2 7 6\n9 _ 1\n4 3 8\nQuel est le chiffre manquant ?",
                 "réponse": 5
             },
             # Séquence numérique
             {
-                "question": "Suite : 1, 1, 2, 3, 5, ?\nQuel est le prochain nombre ?",
+                "question": "Question : Soit la Suite : 1, 1, 2, 3, 5, ?\nQuel est le prochain nombre ?",
                 "réponse": 8
             },
             # Séquence alphabétique
             {
-                "question": "Suite : A, C, E, G, ?\nQuelle est la prochaine lettre ?",
+                "question": "Question Soit la Suite : A, C, E, G, ?\nQuelle est la prochaine lettre ?",
                 "réponse": "I"
             }
         ]
@@ -424,30 +437,15 @@ class Game:
             # Mettre à jour l'écran et ajouter un délai
             pygame.display.flip()
             pygame.time.delay(100)  # 100 ms entre chaque étape de l'animation
-    
-    
-    #===================================================================================================#
-    #               Définition qui genere aleatoirement  les 2 équipes (joueur1 et joueur 2)            #
-    #===================================================================================================#
-    
-    def create_random_team(self, team):
-        unit_classes = [Explorateur, Archeologue, Chasseur]
-        units = []
-        for _ in range(3):
-            x = random.randint(0, GRID_COLUMNS - 1)
-            y = random.randint(0, GRID_ROWS - 1)
-            units.append(random.choice(unit_classes)(x, y, team))
-        return units
-    
-    
+
     #============================================================================================================================#
     #               Définition qui initialise les équipes en placant les unités aux coins opposés de la grille                   #
     #============================================================================================================================#
-    
-
 
     def initialize_teams(self):
-
+        if hasattr(self, "teams_initialized") and self.teams_initialized:
+            return  # Ne rien faire si déjà initialisé
+   
         # Positions pour l'équipe 1 (en haut à gauche)
         team_1_positions = [(0, 0), (1, 0), (0, 1)]
         # Positions pour l'équipe 2 (en bas à droite)
@@ -457,28 +455,34 @@ class Game:
             (GRID_COLUMNS - 1, GRID_ROWS - 2),
         ]
 
-        # Placer les unités de l'équipe 1
-        for i, unit in enumerate(self.player_units):
-            if i < len(team_1_positions):  # Vérifier que l'index est valide
-                grid_x, grid_y = team_1_positions[i]
-                unit.x = grid_x
-                unit.y = grid_y
+        # Liste des classes d'unités disponibles
+        unit_classes = [Explorateur, Archeologue, Chasseur]
 
-        # Placer les unités de l'équipe 2
-        for i, unit in enumerate(self.enemy_units):
-            if i < len(team_2_positions):  # Vérifier que l'index est valide
-                grid_x, grid_y = team_2_positions[i]
-                unit.x = grid_x
-                unit.y = grid_y
+        # Créer les unités de l'équipe 1 (player)
+        self.player_units = []
+        for grid_x, grid_y in team_1_positions:
+            unit_class = random.choice(unit_classes)  # Choisir une classe aléatoire
+            unit = unit_class(grid_x, grid_y, "player")
+            self.player_units.append(unit)
 
-        # Affiche les coordonnées des unités pour débogage
-        print("Positions des unités de l'équipe 1 (player):")
+        # Créer les unités de l'équipe 2 (enemy)
+        self.enemy_units = []
+        for grid_x, grid_y in team_2_positions:
+            unit_class = random.choice(unit_classes)  # Choisir une classe aléatoire
+            unit = unit_class(grid_x, grid_y, "enemy")
+            self.enemy_units.append(unit)
+
+        # Marquer les équipes comme initialisées
+        self.teams_initialized = True
+
+        # Debug : Afficher les équipes créées
+        print("Équipe 1 (player) :")
         for unit in self.player_units:
-            print(f"{unit.name} - x: {unit.x}, y: {unit.y}")
+            print(f"{unit.name} à ({unit.x}, {unit.y})")
 
-        print("Positions des unités de l'équipe 2 (enemy):")
+        print("Équipe 2 (enemy) :")
         for unit in self.enemy_units:
-            print(f"{unit.name} - x: {unit.x}, y: {unit.y}")
+            print(f"{unit.name} à ({unit.x}, {unit.y})")
                 
     #========================================================================================================================#
     #               Définition qui permet au joueur d'interagire avec les unités en utilisants differants touches            #
@@ -571,6 +575,7 @@ class Game:
                             accessible_positions = get_accessible_positions(unite_selectionne, GRID_COLUMNS, GRID_ROWS, game = self)
                             self.selected_position = (unite_selectionne.x, unite_selectionne.y)
                             self.last_action_message = f"{unite_selectionne.name} est sélectionné."
+                            self.add_message(f"{unite_selectionne.name} est sélectionné.")
                             # Forcer le recalcul des zones d'accessibilité pour la nouvelle unité
                             self.flip_display()
                             break
@@ -619,20 +624,29 @@ class Game:
                         if event.key == pygame.K_r and isinstance(unite_selectionne, Explorateur):  # Coup rapide
                             cibles = unite_selectionne.get_cibles_accessibles(ennemis, GRID_COLUMNS, GRID_ROWS)
                             if not cibles:
+                                self.add_message("Aucune cible disponible pour Coup rapide.")
                                 print("Aucune cible disponible pour Coup rapide.")
                                 break  # Éviter une boucle infinie
                             cible = cibles[0]  # Prenez la première cible disponible
                             competence = unite_selectionne.competences[0]  # Coup rapide
                             competence.utiliser(unite_selectionne, cible, self)
+                            self.add_message(f"{unite_selectionne.name} utilise {competence.nom} sur {cible.name}.")
+                            print(f"{unite_selectionne.name} utilise {competence.nom} sur {cible.name}.")
                             has_acted = True
 
                         elif event.key == pygame.K_t and isinstance(unite_selectionne, Archeologue):  # Attaque ciblée
                             cibles = unite_selectionne.get_cibles_accessibles(ennemis, GRID_COLUMNS, GRID_ROWS)
-                            if cibles:
-                                cible = cibles[0]
-                                competence = unite_selectionne.competences[0]
-                                competence.utiliser(unite_selectionne, cible, self)
-                                has_acted = True
+                            if not cibles:
+                                self.add_message("Aucune cible disponible pour l'attaque ciblée.")
+                                print("Aucune cible disponible pour l'attaque ciblée.")
+                                break  # Éviter une boucle infinie
+                            cible = cibles[0]
+                            competence = unite_selectionne.competences[0]
+                            competence.utiliser(unite_selectionne, cible, self)
+                            self.add_message(f"{unite_selectionne.name} utilise {competence.nom} sur {cible.name}.")
+                            print(f"{unite_selectionne.name} utilise {competence.nom} sur {cible.name}.")
+                            has_acted = True
+                            
                         elif event.key == pygame.K_a and isinstance(unite_selectionne, Archeologue):  # Analyse de l'environnement
                             competence = unite_selectionne.competences[2]
                             competence.utiliser(unite_selectionne, None, self)
@@ -640,11 +654,17 @@ class Game:
 
                         elif event.key == pygame.K_y and isinstance(unite_selectionne, Chasseur):  # Tir à distance
                             cibles = unite_selectionne.get_cibles_accessibles(ennemis, GRID_COLUMNS, GRID_ROWS)
-                            if cibles:
-                                cible = cibles[0]
-                                competence = unite_selectionne.competences[0]
-                                competence.utiliser(unite_selectionne, cible, self)
-                                has_acted = True
+                            if not cibles:
+                                self.add_message("Aucune cible disponible pour La Tir à distance.")
+                                print("Aucune cible disponible pour la Tir à distance.")
+                                break  # Éviter une boucle infinie
+                            cible = cibles[0]
+                            competence = unite_selectionne.competences[0]
+                            competence.utiliser(unite_selectionne, cible, self)
+                            self.add_message(f"{unite_selectionne.name} utilise {competence.nom} sur {cible.name}.")
+                            print(f"{unite_selectionne.name} utilise {competence.nom} sur {cible.name}.")
+                            has_acted = True
+                            
                         elif event.key == pygame.K_e and isinstance(unite_selectionne, Explorateur):  # Révéler zone
                             competence = unite_selectionne.competences[1]  # Hypothèse : Révélation est la deuxième compétence
                             competence.utiliser(unite_selectionne, None, self)
@@ -1236,7 +1256,36 @@ class Game:
         self.screen.blit(s, (console_x, console_y))
 
         y_offset = console_y + 10
+        
+        # Affichage du message initial pendant 20 secondes
+        if self.startup_message_displayed:
+            elapsed_time = (pygame.time.get_ticks() - self.startup_timer) // 1000  # Temps écoulé en secondes
+            if elapsed_time < 5:
+                # Affichage des instructions avec plusieurs couleurs
+                x_offset = console_x + 10  # Position de départ X
+                y_offset = console_y + 10  # Position de départ Y
 
+                font = pygame.font.Font(None, 28)  # Police de texte
+
+                # Instructions avec texte et couleurs
+                instructions = [
+                    [("Bienvenue dans les Mystérieuses Cités d'Or", (255, 215, 0))],  # Texte doré
+                    [("• Quelques Commandes utiles :", (255, 255, 255))],  # Blanc
+                    [("  - ", (255, 255, 255)), ("C", (0, 255, 255)), (": Voir les touches + But du jeu", (255, 255, 255))],
+                    [("  - ", (255, 255, 255)), ("M", (0, 255, 255)), (": Masquer ce popup (réafficher avant un mouvement).", (255, 255, 255))]
+                ]
+
+                # Parcourir chaque ligne des instructions
+                for line in instructions:
+                    x_current = x_offset  # Réinitialiser le décalage horizontal pour chaque ligne
+                    for segment in line:
+                        text, color = segment  # Extraire le texte et la couleur
+                        text_surface = font.render(text, True, color)  # Créer le texte avec la couleur
+                        self.screen.blit(text_surface, (x_current, y_offset))  # Dessiner le texte à l'écran
+                        x_current += text_surface.get_width()  # Décaler X pour le segment suivant
+                    y_offset += 30  # Décaler vers le bas pour la ligne suivante
+            else:
+                self.startup_message_displayed = False  # Désactive le message après 20 secondes
         if self.current_riddle:
             # Afficher uniquement l'énigme et la réponse utilisateur
             lines = self.current_riddle["question"].split("\n")
@@ -1283,3 +1332,4 @@ class Game:
         
             
         pygame.display.flip()       # Mettre à jour l'affichage
+
