@@ -348,28 +348,40 @@ class Chasseur(Unit):
 
 
     def brouillard_de_guerre(self, utilisateur, game):
-        
-        ennemis = game.enemy_units if utilisateur.team == "player" else game.player_units
-        
-        for ennemi in ennemis:
-            # Calculer le déplacement de recul de 2 cases
-            dx = ennemi.x - utilisateur.x
-            dy = ennemi.y - utilisateur.y
-            recul_x = ennemi.x + (2 if dx > 0 else -2 if dx < 0 else 0)
-            recul_y = ennemi.y + (2 if dy > 0 else -2 if dy < 0 else 0)
+        """
+        Applique un brouillard de guerre sur l'équipe adverse,
+        forçant chaque unité adverse à reculer de deux cases dans une direction
+        (haut, bas, gauche ou droite) en fonction de leur position initiale.
+        """
+        # Identifier l'équipe adverse
+        equipe_adverse = game.enemy_units if utilisateur.team == "player" else game.player_units
+        nouvelles_positions = []  # Liste pour stocker les nouvelles positions des ennemis
+        for adversaire in equipe_adverse:
+            # Calculer la direction principale pour reculer (gauche/droite ou haut/bas)
+            dx = adversaire.x - utilisateur.x
+            dy = adversaire.y - utilisateur.y
 
-            # Vérifier que le recul reste dans les limites de la grille
-            if 0 <= recul_x < GRID_COLUMNS and 0 <= recul_y < GRID_ROWS:
-                ennemi.x, ennemi.y = recul_x, recul_y
-                print(f"{ennemi.name} a reculé à la position ({recul_x}, {recul_y}).")
+            # Par défaut, la direction de recul sera basée sur la position relative
+            if abs(dx) >= abs(dy):  # Privilégier un recul horizontal
+                recul_x = adversaire.x + (2 if dx > 0 else -2)
+                recul_y = adversaire.y
+            else:  # Privilégier un recul vertical
+                recul_x = adversaire.x
+                recul_y = adversaire.y + (2 if dy > 0 else -2)
 
-        # Afficher l'effet visuel associé au brouillard
+            # Si le recul sort des limites, ajuster pour rester dans la grille
+            recul_x = max(0, min(game.grid_size - 1, recul_x))
+            recul_y = max(0, min(game.grid_size - 1, recul_y))
+
+            # Appliquer le recul si la case cible est libre ou forcer le déplacement
+            adversaire.x, adversaire.y = recul_x, recul_y
+            print(f"{adversaire.name} a reculé à la position ({recul_x}, {recul_y}).")
+
+        # Ajouter un effet visuel pour le brouillard
         game.afficher_effet_brouillard(utilisateur)
-    
-    
-    
-    
-    
-    
-    
-    
+
+        if nouvelles_positions:
+            print(f"{utilisateur.name} a forcé les unités adverses à reculer : {nouvelles_positions}")
+
+        # Retourner les nouvelles positions des unités affectées
+        return nouvelles_positions
